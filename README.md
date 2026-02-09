@@ -1,93 +1,175 @@
-# nestjs-training
+# Blog API
 
+RESTful API built with NestJS. Features modular architecture, JWT authentication via Clerk, and PostgreSQL database with MikroORM.
 
+## Tech Stack
 
-## Getting started
+- **Runtime**: Node.js 18+
+- **Language**: TypeScript
+- **Framework**: Nest.js
+- **Database**: PostgreSQL
+- **ORM**: MikroORM
+- **Authentication**: Clerk (JWT)
+- **Testing**: Jest, Postman
+- **Documentation**: Swagger
+- **Package Manager**: pnpm
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
-
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
-
-## Add your files
-
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
+## Folder Structure
 
 ```
-cd existing_repo
-git remote add origin https://gitlab.asoft-python.com/huy.pham/nestjs-training.git
-git branch -M main
-git push -uf origin main
+src/
+├── config/              # App configuration
+├── constants/           # Enums, status codes, error codes
+├── database/            # DB config, migrations
+├── exceptions/          # Custom exception classes
+├── middlewares/         # Auth, error handler, entity manager
+├── modules/             # Feature modules
+│   ├── auth/
+│   │   ├── auth.controller.ts
+│   │   ├── auth.service.ts
+│   │   └── auth.routes.ts
+│   └── user/
+│       ├── user.controller.ts
+│       ├── user.service.ts
+│       ├── user.entity.ts
+│       ├── user.repo.ts
+│       └── user.routes.ts
+├── shared/              # Shared DTOs, helpers, errors
+├── types/               # TypeScript declarations
+├── utils/               # Utility functions
+├── validators/          # Input validation schemas
+├── routes.ts            # API route aggregator
+└── server.ts            # App entry point
 ```
 
-## Integrate with your tools
+## Environment Variables
 
-- [ ] [Set up project integrations](https://gitlab.asoft-python.com/huy.pham/nestjs-training/-/settings/integrations)
+| Variable                | Description       | Example                 |
+| ----------------------- | ----------------- | ----------------------- |
+| `NODE_ENV`              | Environment       | `development`           |
+| `PORT`                  | Server port       | `3000`                  |
+| `HOST`                  | Server host       | `localhost`             |
+| `DB_HOST`               | PostgreSQL host   | `localhost`             |
+| `DB_PORT`               | PostgreSQL port   | `5432`                  |
+| `DB_NAME`               | Database name     | `blog_api`              |
+| `DB_USER`               | Database user     | `postgres`              |
+| `DB_PASSWORD`           | Database password | `password`              |
+| `CLERK_PUBLISHABLE_KEY` | Clerk public key  | `pk_test_...`           |
+| `CLERK_SECRET_KEY`      | Clerk secret key  | `sk_test_...`           |
+| `CORS_ORIGIN`           | Allowed origins   | `http://localhost:3000` |
+| `API_BASE_PATH`         | API base path     | `/api`                  |
+| `API_VERSION`           | API version       | `v1`                    |
 
-## Collaborate with your team
+## Getting Started
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+**Prerequisites**: Node.js 18+, PostgreSQL, pnpm
 
-## Test and Deploy
+```bash
+# Install dependencies
+pnpm install
 
-Use the built-in continuous integration in GitLab.
+# Setup environment
+cp .env.example .env
+# Edit .env with your values
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+# Run migrations
+pnpm migration:up
 
-***
+# Start development server
+pnpm start:dev
+```
 
-# Editing this README
+Server runs at `http://localhost:3000`
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+## Database & Migrations
 
-## Suggestions for a good README
+**ORM**: MikroORM with PostgreSQL driver
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+**Migrations**:
 
-## Name
-Choose a self-explaining name for your project.
+```bash
+# Create migration
+pnpm migration:create
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+# Run migrations
+pnpm migration:up
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+# Rollback migration
+pnpm migration:down
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+# List migrations
+pnpm migration:list
+```
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+**Note**: Migrations use `NODE_OPTIONS='--import tsx'` for TypeScript support in ES modules.
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+## API Documentation
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+Access Swagger UI at: `http://localhost:3000/api/v1/docs/swagger`
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+**Common Headers**:
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+```
+Content-Type: application/json
+Authorization: Bearer <clerk_jwt_token>
+```
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+## Example API Request
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+**Get Current User**
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+```bash
+curl -X GET http://localhost:3000/api/v1/users/me \
+  -H "Authorization: Bearer <your_clerk_jwt>"
+```
 
-## License
-For open source projects, say how it is licensed.
+**Response**:
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+```json
+{
+  "data": {
+    "id": "uuid",
+    "authId": "clerk_user_id",
+    "email": "user@example.com",
+    "fullName": "John Doe",
+    "role": "user",
+    "status": "active",
+    "createdAt": "2026-01-15T00:00:00.000Z",
+    "updatedAt": "2026-01-15T00:00:00.000Z"
+  }
+}
+```
+
+## Scripts
+
+```bash
+# Development
+pnpm dev                 # Start with hot-reload
+
+# Build
+pnpm build              # Compile TypeScript
+
+# Production
+pnpm start              # Run compiled code
+
+# Database
+pnpm migration:create   # Create new migration
+pnpm migration:up       # Run migrations
+pnpm migration:down     # Rollback migration
+pnpm schema:update      # Update schema (dev only)
+
+# Code Quality
+pnpm lint               # Check linting
+pnpm lint:fix           # Fix linting issues
+pnpm format             # Format code
+pnpm format:check       # Check formatting
+
+# Testing
+pnpm test               # Run Jest tests
+```
+
+## 👨‍💻 Author
+
+Huy Pham
+
+**Happy Coding! 🚀**
