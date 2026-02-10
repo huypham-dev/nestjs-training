@@ -8,6 +8,7 @@ import { clerkMiddleware } from '@clerk/express';
 
 // Modules
 import { UserModule } from '@/modules/user';
+import { CategoryModule } from '@/modules/category';
 
 // Filters
 import { GlobalExceptionFilter } from '@/common/filters';
@@ -42,6 +43,7 @@ import { createDatabaseConfig } from '@/config';
       },
     }),
     UserModule,
+    CategoryModule,
   ],
   providers: [
     {
