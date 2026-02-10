@@ -1,3 +1,4 @@
+// Dependencies
 import {
   Entity,
   Enum,
@@ -6,8 +7,10 @@ import {
   Property,
   Unique,
 } from '@mikro-orm/core';
-import { UserRole, UserStatus } from '@/constants/users';
 import { v4 } from 'uuid';
+
+// Constants
+import { UserRole, UserStatus } from '@/constants/users';
 
 @Entity({ tableName: 'users' })
 export class User {
