@@ -1,14 +1,18 @@
 // Dependencies
-import { APP_FILTER } from '@nestjs/core';
+import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { PostgreSqlDriver } from '@mikro-orm/postgresql';
 import { clerkMiddleware } from '@clerk/express';
+import { ThrottlerModule } from '@nestjs/throttler';
 
 // Modules
 import { UserModule } from '@/modules/user';
 import { CategoryModule } from '@/modules/category';
+
+// Interceptors
+import { LoggingInterceptor } from '@/common/interceptors';
 
 // Filters
 import { GlobalExceptionFilter } from '@/common/filters';
@@ -42,6 +46,18 @@ import { createDatabaseConfig } from '@/config';
         };
       },
     }),
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        throttlers: [
+          {
+            ttl: configService.get<number>('THROTTLE_TTL', 900000), // 15 minutes
+            limit: configService.get<number>('THROTTLE_LIMIT', 100), // 100 requests per 15 minutes
+          },
+        ],
+      }),
+    }),
     UserModule,
     CategoryModule,
   ],
@@ -49,6 +65,10 @@ import { createDatabaseConfig } from '@/config';
     {
       provide: APP_FILTER,
       useClass: GlobalExceptionFilter,
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: LoggingInterceptor,
     },
   ],
 })

@@ -1,5 +1,6 @@
 // Dependencies
 import { NestFactory } from '@nestjs/core';
+import helmet from 'helmet';
 
 // Modules
 import { AppModule } from './app.module';
@@ -9,6 +10,12 @@ import { ResponseTransformInterceptor } from './common/interceptors/response-tra
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // Enables CORS with default settings
+  app.enableCors();
+
+  // Use Helmet to enhance API security
+  app.use(helmet());
 
   // Set global prefix with versioning from environment variables (e.g., /api/v1)
   app.setGlobalPrefix(
@@ -20,4 +27,5 @@ async function bootstrap() {
 
   await app.listen(process.env.PORT ?? 8000);
 }
+
 void bootstrap();
