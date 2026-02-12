@@ -1,3 +1,4 @@
+// Dependencies
 import {
   Entity,
   PrimaryKey,
@@ -7,6 +8,8 @@ import {
   Opt,
 } from '@mikro-orm/core';
 import { v4 } from 'uuid';
+
+// Entities
 import { Post } from '@/modules/post/post.entity';
 
 @Entity({ tableName: 'categories' })

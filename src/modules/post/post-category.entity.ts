@@ -1,4 +1,7 @@
+// Dependencies
 import { Entity, ManyToOne, PrimaryKeyProp } from '@mikro-orm/core';
+
+// Entities
 import { Post } from '@/modules/post/post.entity';
 import { Category } from '@/modules/category/category.entity';
 
