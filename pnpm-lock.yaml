@@ -20,6 +20,7 @@ specifiers:
   '@nestjs/platform-express': ^11.0.1
   '@nestjs/schematics': ^11.0.0
   '@nestjs/testing': ^11.0.1
+  '@nestjs/throttler': ^6.5.0
   '@types/express': ^5.0.0
   '@types/jest': ^30.0.0
   '@types/node': ^22.10.7
@@ -31,6 +32,7 @@ specifiers:
   eslint-config-prettier: ^10.0.1
   eslint-plugin-prettier: ^5.2.2
   globals: ^16.0.0
+  helmet: ^8.1.0
   husky: ^9.1.7
   jest: ^30.0.0
   lint-staged: ^16.2.7
@@ -60,9 +62,11 @@ dependencies:
   '@nestjs/config': 4.0.3_b2jvhitpmgd6f5yf7ml46fct2q
   '@nestjs/core': 11.1.13_c3i7chgfhwiivlah7g34yfcvsy
   '@nestjs/platform-express': 11.1.13_2qdzwi7pf2pqkxxaurze5sazvq
+  '@nestjs/throttler': 6.5.0_2vnpgep34qm42be5lajr2vhwoy
   class-transformer: 0.5.1
   class-validator: 0.14.3
   dotenv: 17.2.4
+  helmet: 8.1.0
   reflect-metadata: 0.2.2
   rxjs: 7.8.2
   uuid: 13.0.0
@@ -1834,6 +1838,18 @@ packages:
       '@nestjs/platform-express': 11.1.13_2qdzwi7pf2pqkxxaurze5sazvq
       tslib: 2.8.1
     dev: true
+
+  /@nestjs/throttler/6.5.0_2vnpgep34qm42be5lajr2vhwoy:
+    resolution: {integrity: sha512-9j0ZRfH0QE1qyrj9JjIRDz5gQLPqq9yVC2nHsrosDVAfI5HHw08/aUAWx9DZLSdQf4HDkmhTTEGLrRFHENvchQ==}
+    peerDependencies:
+      '@nestjs/common': ^7.0.0 || ^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0
+      '@nestjs/core': ^7.0.0 || ^8.0.0 || ^9.0.0 || ^10.0.0 || ^11.0.0
+      reflect-metadata: ^0.1.13 || ^0.2.0
+    dependencies:
+      '@nestjs/common': 11.1.13_26q5nehxwcs3ri7zvy3wttpjeq
+      '@nestjs/core': 11.1.13_c3i7chgfhwiivlah7g34yfcvsy
+      reflect-metadata: 0.2.2
+    dev: false
 
   /@noble/hashes/1.8.0:
     resolution: {integrity: sha512-jCs9ldd7NwzpgXDIf6P3+NrHh9/sD6CQdxHyjQI+h/6rDNo88ypBxxz45UDuZHz9r3tNz7N/VInSVoVdtXEI4A==}
@@ -4166,6 +4182,11 @@ packages:
     engines: {node: '>= 0.4'}
     dependencies:
       function-bind: 1.1.2
+
+  /helmet/8.1.0:
+    resolution: {integrity: sha512-jOiHyAZsmnr8LqoPGmCjYAaiuWwjAPLgY8ZX2XrmHawt99/u1y6RgrZMTeoPfpUbV96HOalYgz1qzkRbw54Pmg==}
+    engines: {node: '>=18.0.0'}
+    dev: false
 
   /html-escaper/2.0.2:
     resolution: {integrity: sha512-H2iMtd0I4Mt5eYiapRdIDjp+XzelXQ0tFE4JS7YFwFevXXMmOp9myNrUvCg0D6ws8iqkRPBfKHgbwig1SmlLfg==}
