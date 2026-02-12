@@ -1,5 +1,5 @@
 // Dependencies
-import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
@@ -10,6 +10,7 @@ import { ThrottlerModule } from '@nestjs/throttler';
 // Modules
 import { UserModule } from '@/modules/user';
 import { CategoryModule } from '@/modules/category';
+import { PostModule } from '@/modules/post';
 
 // Interceptors
 import { LoggingInterceptor } from '@/common/interceptors';
@@ -26,6 +27,7 @@ import {
 
 // Config
 import { createDatabaseConfig } from '@/config';
+import { RolesGuard } from './common/guards';
 
 @Module({
   imports: [
@@ -60,6 +62,7 @@ import { createDatabaseConfig } from '@/config';
     }),
     UserModule,
     CategoryModule,
+    PostModule,
   ],
   providers: [
     {
@@ -69,6 +72,10 @@ import { createDatabaseConfig } from '@/config';
     {
       provide: APP_INTERCEPTOR,
       useClass: LoggingInterceptor,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RolesGuard,
     },
   ],
 })

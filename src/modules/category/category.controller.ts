@@ -3,6 +3,8 @@ import { Controller, Get } from '@nestjs/common';
 
 // Services
 import { CategoryService } from './category.service';
+import { Category } from './category.entity';
+import { CategoryResponse } from './category.dto';
 
 @Controller('categories')
 export class CategoryController {
@@ -10,11 +12,18 @@ export class CategoryController {
 
   @Get()
   async getAllCategories() {
-    const result = await this.categoryService.getAllCategories();
+    const data = await this.categoryService.getAllCategories();
 
     return {
-      data: result.data,
-      ...(result.meta ? { meta: result.meta } : {}),
+      data: data.map((category) => this.toCategoryResponse(category)),
+    };
+  }
+
+  private toCategoryResponse(category: Category): CategoryResponse {
+    return {
+      id: category.id,
+      name: category.name,
+      createdAt: category.createdAt.toISOString(),
     };
   }
 }

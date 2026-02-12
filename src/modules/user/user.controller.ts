@@ -11,7 +11,6 @@ import {
 } from '@nestjs/common';
 
 // Guards
-import { RolesGuard } from '@/common/guards';
 import { PreventSameUserActionGuard } from './user.guards';
 
 // Pipes
@@ -33,6 +32,7 @@ import type {
   updateCurrentUserDto,
   UpdateUserStatusDto,
   UserQueryDto,
+  UserResponse,
 } from './user.dto';
 
 // Decorators
@@ -47,7 +47,6 @@ export class UserController {
 
   // Get all users (admin only)
   @Get()
-  @UseGuards(RolesGuard)
   @Roles(UserRole.ADMIN)
   async getAllUsers(
     @Query(new ZodValidationPipe(userQuerySchema)) query: UserQueryDto
@@ -58,7 +57,7 @@ export class UserController {
     });
 
     return {
-      data: result.data,
+      data: result.data.map((user) => this.toUserResponse(user)),
       ...(result.meta ? { meta: result.meta } : {}),
     };
   }
@@ -89,7 +88,7 @@ export class UserController {
   }
 
   @Patch(':id/status')
-  @UseGuards(RolesGuard, PreventSameUserActionGuard)
+  @UseGuards(PreventSameUserActionGuard)
   @Roles(UserRole.ADMIN)
   async updateUserStatus(
     @Param('id', ParseUUIDPipe) userId: string,
@@ -102,6 +101,19 @@ export class UserController {
       data: {
         success: true,
       },
+    };
+  }
+
+  private toUserResponse(user: User): UserResponse {
+    return {
+      id: user.id,
+      authId: user.authId,
+      fullName: user.fullName,
+      email: user.email,
+      role: user.role,
+      status: user.status,
+      createdAt: user.createdAt.toISOString(),
+      updatedAt: user.updatedAt.toISOString(),
     };
   }
 }
