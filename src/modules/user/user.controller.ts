@@ -3,6 +3,8 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
+  HttpStatus,
   Param,
   ParseUUIDPipe,
   Patch,
@@ -47,6 +49,7 @@ export class UserController {
 
   // Get all users (admin only)
   @Get()
+  @HttpCode(HttpStatus.OK)
   @Roles(UserRole.ADMIN)
   async getAllUsers(
     @Query(new ZodValidationPipe(userQuerySchema)) query: UserQueryDto
@@ -64,6 +67,7 @@ export class UserController {
 
   // Get current authenticated user
   @Get('me')
+  @HttpCode(HttpStatus.OK)
   getCurrentUser(@CurrentUser() user: User) {
     return {
       data: user,
@@ -72,6 +76,7 @@ export class UserController {
 
   // Update current user information
   @Patch('me')
+  @HttpCode(HttpStatus.OK)
   async updateCurrentUser(
     @CurrentUser() user: User,
     @Body(new ZodValidationPipe(updateCurrentUserSchema))
@@ -88,6 +93,7 @@ export class UserController {
   }
 
   @Patch(':id/status')
+  @HttpCode(HttpStatus.OK)
   @UseGuards(PreventSameUserActionGuard)
   @Roles(UserRole.ADMIN)
   async updateUserStatus(

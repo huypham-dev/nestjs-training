@@ -52,6 +52,7 @@ export class PostController {
    * - Can only see PUBLISHED posts from others
    */
   @Get('posts')
+  @HttpCode(HttpStatus.OK)
   async getAllPosts(
     @CurrentUser() user: User,
     @Query(new ZodValidationPipe(postQuerySchema)) query: PostQueryDto
@@ -93,6 +94,7 @@ export class PostController {
    * - Only owner can view DRAFT posts
    */
   @Get('posts/:id')
+  @HttpCode(HttpStatus.OK)
   async getPostById(@CurrentUser() user: User, @Param('id') postId: string) {
     const post = await this.postService.getPostById(postId, user.id);
 
@@ -107,6 +109,7 @@ export class PostController {
    * - Only owner or admin can update (checked by guard)
    */
   @Put('posts/:id')
+  @HttpCode(HttpStatus.OK)
   @UseGuards(PostOwnerOrAdminGuard)
   async updatePost(
     @Param('id') postId: string,
@@ -142,6 +145,7 @@ export class PostController {
    * - Others can only see PUBLISHED posts
    */
   @Get('users/:id/posts')
+  @HttpCode(HttpStatus.OK)
   async getPostsByUser(
     @CurrentUser() currentUser: User,
     @Param('id', ParseUUIDPipe) userId: string,

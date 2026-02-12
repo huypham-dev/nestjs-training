@@ -1,5 +1,5 @@
 // Dependencies
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpStatus } from '@nestjs/common';
 
 // Services
 import { CategoryService } from './category.service';
@@ -11,6 +11,7 @@ export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
 
   @Get()
+  @HttpCode(HttpStatus.OK)
   async getAllCategories() {
     const data = await this.categoryService.getAllCategories();
 
