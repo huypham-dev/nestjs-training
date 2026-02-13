@@ -9,7 +9,7 @@ import {
   Body,
   HttpCode,
   HttpStatus,
-  Put,
+  Patch,
   UseGuards,
   ParseUUIDPipe,
 } from '@nestjs/common';
@@ -57,7 +57,11 @@ export class PostController {
     @CurrentUser() user: User,
     @Query(new ZodValidationPipe(postQuerySchema)) query: PostQueryDto
   ) {
-    const result = await this.postService.getAllPosts(query, user.id);
+    const result = await this.postService.getAllPosts(
+      query,
+      user.id,
+      user.role
+    );
 
     return {
       data: result.data.map((post) => this.toPostResponse(post)),
@@ -91,12 +95,15 @@ export class PostController {
    * GET /posts/:id
    * Get a single post by ID
    * - Anyone can view PUBLISHED posts
-   * - Only owner can view DRAFT posts
+   * - Only owner and admin can view DRAFT posts
    */
   @Get('posts/:id')
   @HttpCode(HttpStatus.OK)
-  async getPostById(@CurrentUser() user: User, @Param('id') postId: string) {
-    const post = await this.postService.getPostById(postId, user.id);
+  async getPostById(
+    @CurrentUser() user: User,
+    @Param('id', ParseUUIDPipe) postId: string
+  ) {
+    const post = await this.postService.getPostById(postId, user.id, user.role);
 
     return {
       data: this.toPostResponse(post),
@@ -104,21 +111,22 @@ export class PostController {
   }
 
   /**
-   * PUT /posts/:id
+   * PATCH /posts/:id
    * Update a post by ID
    * - Only owner or admin can update (checked by guard)
    */
-  @Put('posts/:id')
+  @Patch('posts/:id')
   @HttpCode(HttpStatus.OK)
   @UseGuards(PostOwnerOrAdminGuard)
   async updatePost(
-    @Param('id') postId: string,
+    @Param('id', ParseUUIDPipe) postId: string,
     @Body(new ZodValidationPipe(updatePostSchema)) payload: UpdatePostDto
   ) {
     const post = await this.postService.updatePost(postId, {
       title: payload.title,
       content: payload.content,
       categoryIds: payload.categoryIds,
+      status: payload.status,
     });
 
     return {
@@ -134,7 +142,7 @@ export class PostController {
   @Delete('posts/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
   @UseGuards(PostOwnerOrAdminGuard)
-  async deletePost(@Param('id') postId: string) {
+  async deletePost(@Param('id', ParseUUIDPipe) postId: string) {
     await this.postService.deletePost(postId);
   }
 
@@ -155,6 +163,7 @@ export class PostController {
     const result = await this.postService.getPostsByUserId(
       userId,
       currentUser.id,
+      currentUser.role,
       {
         offset: query.offset ?? 0,
         limit: query.limit ?? 10,
@@ -173,7 +182,11 @@ export class PostController {
       title: post.title,
       content: post.content,
       status: post.status,
-      userId: post.user.id,
+      author: {
+        id: post.user.id,
+        email: post.user.email,
+        fullName: post.user.fullName,
+      },
       categories: post.categories.map((category) => ({
         id: category.id,
         name: category.name,

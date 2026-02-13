@@ -1,0 +1,331 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { getRepositoryToken } from '@mikro-orm/nestjs';
+import { EntityManager } from '@mikro-orm/core';
+
+import { UserService } from './user.service';
+import { User } from './user.entity';
+import { UserStatus } from '@/constants/users';
+import { ResourceNotFoundException } from '@/common/exceptions';
+
+import {
+  createMockRepository,
+  createMockEntityManager,
+} from '@/test/mocks/repository.mock';
+import {
+  createUserFixture,
+  createAdminUserFixture,
+  createInactiveUserFixture,
+} from '@/test/fixtures/user.fixture';
+
+describe('UserService', () => {
+  let service: UserService;
+  let userRepository: ReturnType<typeof createMockRepository>;
+  let entityManager: ReturnType<typeof createMockEntityManager>;
+
+  beforeEach(async () => {
+    // Create mock instances
+    userRepository = createMockRepository();
+    entityManager = createMockEntityManager();
+
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [
+        UserService,
+        {
+          provide: getRepositoryToken(User),
+          useValue: userRepository,
+        },
+        {
+          provide: EntityManager,
+          useValue: entityManager,
+        },
+      ],
+    }).compile();
+
+    service = module.get<UserService>(UserService);
+  });
+
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
+  describe('getAllUsers', () => {
+    it('should return paginated list of users with meta', async () => {
+      // Arrange
+      const users = [createUserFixture(), createAdminUserFixture()];
+      const total = 2;
+      userRepository.findAndCount.mockResolvedValue([users, total]);
+
+      // Act
+      const result = await service.getAllUsers({ offset: 0, limit: 10 });
+
+      // Assert
+      expect(result.data).toEqual(users);
+      expect(result.meta).toEqual({
+        pagination: {
+          offset: 0,
+          limit: 10,
+          total: 2,
+        },
+      });
+      expect(userRepository.findAndCount).toHaveBeenCalledWith(
+        {},
+        {
+          offset: 0,
+          limit: 10,
+          orderBy: { createdAt: 'DESC' },
+        }
+      );
+    });
+
+    it('should use default pagination values when not provided', async () => {
+      // Arrange
+      userRepository.findAndCount.mockResolvedValue([[], 0]);
+
+      // Act
+      await service.getAllUsers();
+
+      // Assert
+      expect(userRepository.findAndCount).toHaveBeenCalledWith(
+        {},
+        {
+          offset: 0,
+          limit: 10,
+          orderBy: { createdAt: 'DESC' },
+        }
+      );
+    });
+
+    it('should return empty data without meta when no users found', async () => {
+      // Arrange
+      userRepository.findAndCount.mockResolvedValue([[], 0]);
+
+      // Act
+      const result = await service.getAllUsers();
+
+      // Assert
+      expect(result.data).toEqual([]);
+      expect(result.meta).toBeUndefined();
+    });
+  });
+
+  describe('getUserByAuthId', () => {
+    it('should return user when found by authId', async () => {
+      // Arrange
+      const user = createUserFixture();
+      userRepository.findOne.mockResolvedValue(user);
+
+      // Act
+      const result = await service.getUserByAuthId('auth-123');
+
+      // Assert
+      expect(result).toEqual(user);
+      expect(userRepository.findOne).toHaveBeenCalledWith({
+        authId: 'auth-123',
+      });
+    });
+
+    it('should throw ResourceNotFoundException when user not found', async () => {
+      // Arrange
+      userRepository.findOne.mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(service.getUserByAuthId('non-existent')).rejects.toThrow(
+        ResourceNotFoundException
+      );
+      await expect(service.getUserByAuthId('non-existent')).rejects.toThrow(
+        'User not found in system'
+      );
+    });
+  });
+
+  describe('getUserById', () => {
+    it('should return user when found by id', async () => {
+      // Arrange
+      const user = createUserFixture();
+      userRepository.findOne.mockResolvedValue(user);
+
+      // Act
+      const result = await service.getUserById('user-123');
+
+      // Assert
+      expect(result).toEqual(user);
+      expect(userRepository.findOne).toHaveBeenCalledWith({ id: 'user-123' });
+    });
+
+    it('should throw ResourceNotFoundException when user not found', async () => {
+      // Arrange
+      userRepository.findOne.mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(service.getUserById('non-existent')).rejects.toThrow(
+        ResourceNotFoundException
+      );
+    });
+  });
+
+  describe('updateUserByAuthId', () => {
+    it('should update user fullName and email', async () => {
+      // Arrange
+      const user = createUserFixture();
+      userRepository.findOne.mockResolvedValue(user);
+      entityManager.flush.mockResolvedValue(undefined);
+
+      const payload = {
+        fullName: 'Updated Name',
+        email: 'updated@example.com',
+      };
+
+      // Act
+      const result = await service.updateUserByAuthId('auth-123', payload);
+
+      // Assert
+      expect(result.fullName).toBe('Updated Name');
+      expect(result.email).toBe('updated@example.com');
+      expect(entityManager.flush).toHaveBeenCalled();
+    });
+
+    it('should update only provided fields', async () => {
+      // Arrange
+      const user = createUserFixture({ email: 'original@example.com' });
+      userRepository.findOne.mockResolvedValue(user);
+      entityManager.flush.mockResolvedValue(undefined);
+
+      // Act
+      const result = await service.updateUserByAuthId('auth-123', {
+        fullName: 'New Name',
+      });
+
+      // Assert
+      expect(result.fullName).toBe('New Name');
+      expect(result.email).toBe('original@example.com'); // unchanged
+      expect(entityManager.flush).toHaveBeenCalled();
+    });
+
+    it('should throw ResourceNotFoundException when user not found', async () => {
+      // Arrange
+      userRepository.findOne.mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(
+        service.updateUserByAuthId('non-existent', { fullName: 'Test' })
+      ).rejects.toThrow(ResourceNotFoundException);
+    });
+  });
+
+  describe('updateUserStatus', () => {
+    it('should update user status to INACTIVE', async () => {
+      // Arrange
+      const user = createUserFixture();
+      userRepository.findOne.mockResolvedValue(user);
+      entityManager.flush.mockResolvedValue(undefined);
+
+      // Act
+      const result = await service.updateUserStatus(
+        'user-123',
+        UserStatus.INACTIVE
+      );
+
+      // Assert
+      expect(result.status).toBe(UserStatus.INACTIVE);
+      expect(entityManager.flush).toHaveBeenCalled();
+    });
+
+    it('should update user status to ACTIVE', async () => {
+      // Arrange
+      const user = createInactiveUserFixture();
+      userRepository.findOne.mockResolvedValue(user);
+      entityManager.flush.mockResolvedValue(undefined);
+
+      // Act
+      const result = await service.updateUserStatus(
+        'user-123',
+        UserStatus.ACTIVE
+      );
+
+      // Assert
+      expect(result.status).toBe(UserStatus.ACTIVE);
+      expect(entityManager.flush).toHaveBeenCalled();
+    });
+
+    it('should throw ResourceNotFoundException when user not found', async () => {
+      // Arrange
+      userRepository.findOne.mockResolvedValue(null);
+
+      // Act & Assert
+      await expect(
+        service.updateUserStatus('non-existent', UserStatus.INACTIVE)
+      ).rejects.toThrow(ResourceNotFoundException);
+    });
+  });
+
+  describe('syncUser', () => {
+    it('should return existing user if found', async () => {
+      // Arrange
+      const existingUser = createUserFixture();
+      userRepository.findOne.mockResolvedValue(existingUser);
+
+      // Act
+      const result = await service.syncUser(
+        'auth-123',
+        'test@example.com',
+        'Test User'
+      );
+
+      // Assert
+      expect(result).toEqual(existingUser);
+      expect(userRepository.create).not.toHaveBeenCalled();
+      expect(entityManager.flush).not.toHaveBeenCalled();
+    });
+
+    it('should create new user if not found', async () => {
+      // Arrange
+      const newUser = createUserFixture({
+        authId: 'new-auth-123',
+        email: 'new@example.com',
+        fullName: 'New User',
+      });
+      userRepository.findOne.mockResolvedValue(null);
+      userRepository.create.mockReturnValue(newUser);
+      entityManager.flush.mockResolvedValue(undefined);
+
+      // Act
+      const result = await service.syncUser(
+        'new-auth-123',
+        'new@example.com',
+        'New User'
+      );
+
+      // Assert
+      expect(result).toEqual(newUser);
+      expect(userRepository.create).toHaveBeenCalledWith({
+        authId: 'new-auth-123',
+        email: 'new@example.com',
+        fullName: 'New User',
+      });
+      expect(entityManager.flush).toHaveBeenCalled();
+    });
+
+    it('should create user with empty email and fullName if not provided', async () => {
+      // Arrange
+      const newUser = createUserFixture({
+        authId: 'new-auth-123',
+        email: '',
+        fullName: '',
+      });
+      userRepository.findOne.mockResolvedValue(null);
+      userRepository.create.mockReturnValue(newUser);
+      entityManager.flush.mockResolvedValue(undefined);
+
+      // Act
+      await service.syncUser('new-auth-123');
+
+      // Assert
+      expect(userRepository.create).toHaveBeenCalledWith({
+        authId: 'new-auth-123',
+        email: '',
+        fullName: '',
+      });
+      expect(entityManager.flush).toHaveBeenCalled();
+    });
+  });
+});
