@@ -50,9 +50,13 @@ export const postSchema = z.object({
   content: z.string(),
   status: z.enum(PostStatus),
   categories: z.array(categorySchema),
-  userId: z.uuid(),
-  createdAt: z.iso.datetime(),
-  updatedAt: z.iso.datetime(),
+  author: z.object({
+    id: z.uuid(),
+    email: z.email(),
+    fullName: z.string(),
+  }),
+  createdAt: z.string(),
+  updatedAt: z.string(),
 });
 
 export type PostQueryDto = z.infer<typeof postQuerySchema>;

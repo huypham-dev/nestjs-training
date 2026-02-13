@@ -17,7 +17,7 @@
     "test:watch": "jest --watch",
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
-    "test:e2e": "jest --config ./test/jest-e2e.json",
+    "test:e2e": "jest --config ./test/jest-e2e.config.js",
     "prepare": "husky",
     "migration:create": "mikro-orm migration:create",
     "migration:up": "mikro-orm migration:up",
@@ -33,7 +33,7 @@
   "dependencies": {
     "@clerk/express": "^1.7.62",
     "@mikro-orm/core": "^6.6.6",
-    "@mikro-orm/migrations": "^6.6.6",
+    "@mikro-orm/migrations": "^6.6pac.6",
     "@mikro-orm/nestjs": "^6.1.1",
     "@mikro-orm/postgresql": "^6.6.6",
     "@mikro-orm/reflection": "^6.6.6",
@@ -81,23 +81,6 @@
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.20.0"
-  },
-  "jest": {
-    "moduleFileExtensions": [
-      "js",
-      "json",
-      "ts"
-    ],
-    "rootDir": "src",
-    "testRegex": ".*\\.spec\\.ts$",
-    "transform": {
-      "^.+\\.(t|j)s$": "ts-jest"
-    },
-    "collectCoverageFrom": [
-      "**/*.(t|j)s"
-    ],
-    "coverageDirectory": "../coverage",
-    "testEnvironment": "node"
   },
   "packageManager": "pnpm@7.32.2+sha512.3dfa2c1386fc91e58756b3becf877e9dc20840af72a5301d453ae4da2a19db00cdd08f4bfa66a9cc9565755aac65dcbbbda93232dc5f927376727e708c449bbe"
 }

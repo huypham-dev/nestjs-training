@@ -6,6 +6,7 @@ import { EntityManager, EntityRepository, FilterQuery } from '@mikro-orm/core';
 // Entities
 import { Post } from './post.entity';
 import { Category } from '@/modules/category/category.entity';
+import { User } from '@/modules/user/user.entity';
 
 // Constants
 import { PostStatus } from '@/constants';
@@ -18,7 +19,7 @@ import {
 
 // Interfaces
 import { SuccessResponse } from '@/common/interfaces';
-import { PostQueryDto } from './post.dto';
+import { PostQueryDto, UpdatePostDto } from './post.dto';
 
 @Injectable()
 export class PostService {
@@ -27,30 +28,37 @@ export class PostService {
     private readonly postRepository: EntityRepository<Post>,
     @InjectRepository(Category)
     private readonly categoryRepository: EntityRepository<Category>,
+    @InjectRepository(User)
+    private readonly userRepository: EntityRepository<User>,
     private readonly em: EntityManager
   ) {}
 
   /**
    * Get posts with visibility rules:
-   * - Current user can see their own posts (DRAFT + PUBLISHED)
-   * - Can only see PUBLISHED posts from other users
-   * - Cannot see DRAFT posts from other users
+   * - Returns only PUBLISHED posts by default (for regular users)
+   * - Admin can see ALL posts (published + draft)
+   * - Use status query param to filter (e.g., status=draft shows current user's drafts)
    */
   async getAllPosts(
     options: PostQueryDto,
-    currentUserId: string
+    currentUserId: string,
+    currentUserRole: string
   ): Promise<SuccessResponse<Post[]>> {
     const offset = options.offset ?? 0;
     const limit = options.limit ?? 10;
 
     // Build query based on filtering rules
-    const where = this.buildPostQuery(options.status, currentUserId);
+    const where = this.buildPostQuery(
+      options.status,
+      currentUserId,
+      currentUserRole
+    );
 
     const [posts, total] = await this.postRepository.findAndCount(where, {
       offset,
       limit,
       orderBy: { createdAt: 'DESC' },
-      populate: ['categories'],
+      populate: ['user', 'categories'],
     });
 
     return {
@@ -68,21 +76,34 @@ export class PostService {
   /**
    * Get posts by a specific user with visibility rules:
    * - Owner can see all their posts (DRAFT + PUBLISHED)
+   * - Admin can see all posts
    * - Others can only see PUBLISHED posts
    */
   async getPostsByUserId(
     targetUserId: string,
     currentUserId: string,
+    currentUserRole: string,
     options: PostQueryDto
   ): Promise<SuccessResponse<Post[]>> {
     const offset = options.offset ?? 0;
     const limit = options.limit ?? 10;
 
-    // Build where condition based on ownership
+    // Check if user exists
+    const userExists = await this.userRepository.count({ id: targetUserId });
+    if (!userExists) {
+      throw new ResourceNotFoundException(
+        `User with ID '${targetUserId}' not found`
+      );
+    }
+
+    // Build where condition based on ownership and role
     const where: FilterQuery<Post> = { user: targetUserId };
 
-    // If not owner, only show published posts
-    if (targetUserId !== currentUserId) {
+    // If not owner and not admin, only show published posts
+    const isOwner = targetUserId === currentUserId;
+    const isAdmin = currentUserRole === 'admin';
+
+    if (!isOwner && !isAdmin) {
       where.status = PostStatus.PUBLISHED;
     }
 
@@ -112,21 +133,25 @@ export class PostService {
    */
   private buildPostQuery(
     status: PostStatus | undefined,
-    currentUserId: string
+    currentUserId: string,
+    currentUserRole: string
   ): FilterQuery<Post> {
+    const isAdmin = currentUserRole === 'admin';
+
     // Case 1: No status provided
-    // Return all PUBLISHED posts + current user's posts (DRAFT + PUBLISHED)
+    // - Admin sees ALL posts
+    // - Regular users see only PUBLISHED posts
     if (!status) {
+      if (isAdmin) {
+        return {}; // No filter - return all posts
+      }
       return {
-        $or: [
-          { status: PostStatus.PUBLISHED }, // All published posts
-          { user: currentUserId }, // Current user's all posts
-        ],
+        status: PostStatus.PUBLISHED,
       };
     }
 
     // Case 2: status = PUBLISHED
-    // Return all PUBLISHED posts (including current user's)
+    // Return all PUBLISHED posts
     if (status === PostStatus.PUBLISHED) {
       return {
         status: PostStatus.PUBLISHED,
@@ -134,8 +159,11 @@ export class PostService {
     }
 
     // Case 3: status = DRAFT
-    // Return ONLY current user's draft posts
+    // Admin sees all drafts, regular users see only their own drafts
     if (status === PostStatus.DRAFT) {
+      if (isAdmin) {
+        return { status: PostStatus.DRAFT };
+      }
       return {
         status: PostStatus.DRAFT,
         user: currentUserId,
@@ -176,13 +204,15 @@ export class PostService {
       user: userId,
     });
 
-    // Add categories
-    categories.forEach((category) => {
-      post.categories.add(category);
-    });
+    // Add categories (if any)
+    if (categories.length > 0) {
+      categories.forEach((category) => {
+        post.categories.add(category);
+      });
+    }
 
     // Persist to database
-    await this.em.flush();
+    await this.em.persistAndFlush(post);
 
     // Load relations for response
     await this.em.populate(post, ['user', 'categories']);
@@ -193,9 +223,13 @@ export class PostService {
   /**
    * Get a single post by ID
    * - Anyone can view PUBLISHED posts
-   * - Only owner can view DRAFT posts
+   * - Only owner and admin can view DRAFT posts
    */
-  async getPostById(postId: string, currentUserId: string): Promise<Post> {
+  async getPostById(
+    postId: string,
+    currentUserId: string,
+    currentUserRole: string
+  ): Promise<Post> {
     const post = await this.postRepository.findOne(
       { id: postId },
       { populate: ['user', 'categories'] }
@@ -206,10 +240,14 @@ export class PostService {
     }
 
     // Check visibility rules
-    // If post is DRAFT, only owner can view
+    // If post is DRAFT, only owner and admin can view
+    const isOwner = post.user.id === currentUserId;
+    const isAdmin = currentUserRole === 'admin';
+
     if (
       (post.status as PostStatus) === PostStatus.DRAFT &&
-      post.user.id !== currentUserId
+      !isOwner &&
+      !isAdmin
     ) {
       throw new AuthorizationException(
         'You do not have permission to view this post'
@@ -222,14 +260,7 @@ export class PostService {
    *  Update a post by ID
    *  - Authorization checked by PostOwnerOrAdminGuard
    */
-  async updatePost(
-    postId: string,
-    data: {
-      title?: string;
-      content?: string;
-      categoryIds?: string[];
-    }
-  ): Promise<Post> {
+  async updatePost(postId: string, data: UpdatePostDto): Promise<Post> {
     const post = await this.postRepository.findOne(
       { id: postId },
       { populate: ['user', 'categories'] }
@@ -245,6 +276,9 @@ export class PostService {
     }
     if (data.content !== undefined) {
       post.content = data.content;
+    }
+    if (data.status !== undefined) {
+      post.status = data.status;
     }
 
     // Update categories if provided
@@ -298,6 +332,7 @@ export class PostService {
     await this.em.flush();
 
     // Delete the post
-    await this.em.remove(post).flush();
+    this.em.remove(post);
+    await this.em.flush();
   }
 }

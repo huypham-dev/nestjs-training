@@ -14,9 +14,10 @@ import { PostOwnerOrAdminGuard } from './post.guards';
 // Entities
 import { Post } from './post.entity';
 import { Category } from '@/modules/category/category.entity';
+import { User } from '@/modules/user/user.entity';
 
 @Module({
-  imports: [MikroOrmModule.forFeature([Post, Category])],
+  imports: [MikroOrmModule.forFeature([Post, Category, User])],
   controllers: [PostController],
   providers: [PostService, PostOwnerOrAdminGuard],
   exports: [PostService],
