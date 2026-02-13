@@ -5,7 +5,6 @@ import { EntityRepository } from '@mikro-orm/core';
 
 // Entities
 import { Category } from './category.entity';
-import { SuccessResponse } from '@/common/interfaces';
 
 @Injectable()
 export class CategoryService {
@@ -14,12 +13,11 @@ export class CategoryService {
     private readonly categoryRepository: EntityRepository<Category>
   ) {}
 
-  async getAllCategories(): Promise<SuccessResponse<Category[]>> {
-    const categories = await this.categoryRepository.findAll({
+  async getAllCategories(): Promise<Category[]> {
+    const data = await this.categoryRepository.findAll({
       orderBy: { name: 'ASC' },
     });
-    return {
-      data: categories,
-    };
+
+    return data;
   }
 }

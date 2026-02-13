@@ -2,7 +2,7 @@
 import { z } from 'zod';
 
 // Constants
-import { UserStatus } from '@/constants/users';
+import { UserRole, UserStatus } from '@/constants/users';
 
 export const userQuerySchema = z.object({
   offset: z
@@ -31,6 +31,18 @@ export const updateUserStatusSchema = z.strictObject({
   status: z.enum(UserStatus),
 });
 
+export const userSchema = z.object({
+  id: z.uuid(),
+  authId: z.string(),
+  email: z.email(),
+  fullName: z.string(),
+  role: z.enum(UserRole),
+  status: z.enum(UserStatus),
+  createdAt: z.iso.datetime(),
+  updatedAt: z.iso.datetime(),
+});
+
 export type UserQueryDto = z.infer<typeof userQuerySchema>;
 export type updateCurrentUserDto = z.infer<typeof updateCurrentUserSchema>;
 export type UpdateUserStatusDto = z.infer<typeof updateUserStatusSchema>;
+export type UserResponse = z.infer<typeof userSchema>;
