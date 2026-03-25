@@ -1,22 +1,14 @@
 // Dependencies
-import {
-  Entity,
-  PrimaryKey,
-  Property,
-  ManyToMany,
-  Collection,
-  Opt,
-} from '@mikro-orm/core';
-import { v4 } from 'uuid';
+import { Entity, Property, ManyToMany, Collection } from '@mikro-orm/core';
+
+// Base Entity
+import { BaseEntity } from '@/common/entities';
 
 // Entities
 import { Post } from '@/modules/post/post.entity';
 
 @Entity({ tableName: 'categories' })
-export class Category {
-  @PrimaryKey({ type: 'uuid', fieldName: 'id' })
-  id: string = v4();
-
+export class Category extends BaseEntity {
   @Property({ type: 'string', fieldName: 'name' })
   name!: string;
   @ManyToMany({
@@ -24,11 +16,4 @@ export class Category {
     mappedBy: 'categories',
   })
   posts = new Collection<Post>(this);
-
-  @Property({
-    type: 'timestamp',
-    fieldName: 'created_at',
-    onCreate: () => new Date(),
-  })
-  createdAt: Date & Opt = new Date();
 }

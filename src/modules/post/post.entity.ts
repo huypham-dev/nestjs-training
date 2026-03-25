@@ -1,7 +1,6 @@
 // Dependencies
 import {
   Entity,
-  PrimaryKey,
   Property,
   ManyToOne,
   ManyToMany,
@@ -9,7 +8,9 @@ import {
   Enum,
   Opt,
 } from '@mikro-orm/core';
-import { v4 } from 'uuid';
+
+// Base Entity
+import { BaseEntity } from '@/common/entities';
 
 // Entities
 import { User } from '@/modules/user/user.entity';
@@ -19,10 +20,7 @@ import { Category } from '@/modules/category/category.entity';
 import { PostStatus } from '@/constants';
 
 @Entity({ tableName: 'posts' })
-export class Post {
-  @PrimaryKey({ type: 'uuid', fieldName: 'id' })
-  id: string = v4();
-
+export class Post extends BaseEntity {
   @Property({ type: 'string', fieldName: 'title' })
   title!: string;
 
@@ -44,18 +42,4 @@ export class Post {
     pivotEntity: 'PostCategory',
   })
   categories = new Collection<Category>(this);
-
-  @Property({
-    type: 'timestamp',
-    fieldName: 'created_at',
-    onCreate: () => new Date(),
-  })
-  createdAt: Date & Opt = new Date();
-
-  @Property({
-    type: 'timestamp',
-    fieldName: 'updated_at',
-    onUpdate: () => new Date(),
-  })
-  updatedAt: Date & Opt = new Date();
 }

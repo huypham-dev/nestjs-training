@@ -1,22 +1,14 @@
 // Dependencies
-import {
-  Entity,
-  Enum,
-  Opt,
-  PrimaryKey,
-  Property,
-  Unique,
-} from '@mikro-orm/core';
-import { v4 } from 'uuid';
+import { Entity, Enum, Opt, Property, Unique } from '@mikro-orm/core';
+
+// Base Entity
+import { BaseEntity } from '@/common/entities';
 
 // Constants
 import { UserRole, UserStatus } from '@/constants/users';
 
 @Entity({ tableName: 'users' })
-export class User {
-  @PrimaryKey({ type: 'uuid', fieldName: 'id' })
-  id: string = v4();
-
+export class User extends BaseEntity {
   @Property({ type: 'string', fieldName: 'auth_id' })
   @Unique()
   authId!: string;
@@ -32,18 +24,4 @@ export class User {
 
   @Enum({ items: () => UserStatus, fieldName: 'status' })
   status: UserStatus & Opt = UserStatus.ACTIVE;
-
-  @Property({
-    type: 'timestamp',
-    fieldName: 'created_at',
-    onCreate: () => new Date(),
-  })
-  createdAt: Date & Opt = new Date();
-
-  @Property({
-    type: 'timestamp',
-    fieldName: 'updated_at',
-    onUpdate: () => new Date(),
-  })
-  updatedAt: Date & Opt = new Date();
 }

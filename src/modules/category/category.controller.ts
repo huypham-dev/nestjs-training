@@ -1,17 +1,42 @@
 // Dependencies
 import { Controller, Get, HttpCode, HttpStatus } from '@nestjs/common';
+import { ApiTags, ApiSecurity } from '@nestjs/swagger';
+
+// Common decorators
+import { ApiDocumentation } from '@/common/decorators';
 
 // Services
 import { CategoryService } from './category.service';
 import { Category } from './category.entity';
 import { CategoryResponse } from './category.dto';
 
+@ApiTags('Categories')
+@ApiSecurity('clerk-auth')
 @Controller('categories')
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
 
   @Get()
   @HttpCode(HttpStatus.OK)
+  @ApiDocumentation({
+    operation: {
+      summary: 'Get all categories',
+      description: 'Retrieve a list of all available categories in the system.',
+    },
+    response: {
+      status: 200,
+      description: 'Successfully retrieved categories list',
+      schema: {
+        type: 'object',
+        properties: {
+          data: {
+            type: 'array',
+            items: { $ref: '#/components/schemas/CategoryResponse' },
+          },
+        },
+      },
+    },
+  })
   async getAllCategories() {
     const data = await this.categoryService.getAllCategories();
 
