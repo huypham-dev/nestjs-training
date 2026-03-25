@@ -12,14 +12,20 @@ import {
   Patch,
   UseGuards,
   ParseUUIDPipe,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ApiTags, ApiSecurity } from '@nestjs/swagger';
+import { CacheInterceptor, CacheKey, CacheTTL } from '@nestjs/cache-manager';
 
 // Common decorators
 import { ApiDocumentation } from '@/common/decorators';
 
 // Services
 import { PostService } from './post.service';
+import { CacheService } from '@/common/services';
+
+// Constants
+import { CACHE_KEYS } from '@/constants';
 
 // DTOs
 import {
@@ -49,7 +55,10 @@ import type { PostResponse } from './post.dto';
 @ApiSecurity('clerk-auth')
 @Controller()
 export class PostController {
-  constructor(private readonly postService: PostService) {}
+  constructor(
+    private readonly postService: PostService,
+    private readonly cacheService: CacheService
+  ) {}
 
   /**
    * GET /posts
@@ -59,6 +68,9 @@ export class PostController {
    */
   @Get('posts')
   @HttpCode(HttpStatus.OK)
+  @UseInterceptors(CacheInterceptor)
+  @CacheKey(CACHE_KEYS.POSTS_LIST)
+  @CacheTTL(60000) // 60 seconds
   @ApiDocumentation({
     operation: {
       summary: 'Get all posts',
@@ -146,6 +158,9 @@ export class PostController {
       categoryIds: payload.categoryIds,
     });
 
+    // Invalidate post caches
+    await this.cacheService.invalidatePostCaches(undefined, user.id);
+
     return {
       data: this.toPostResponse(post),
     };
@@ -159,6 +174,8 @@ export class PostController {
    */
   @Get('posts/:id')
   @HttpCode(HttpStatus.OK)
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(60000) // 60 seconds
   @ApiDocumentation({
     operation: {
       summary: 'Get post by ID',
@@ -245,6 +262,9 @@ export class PostController {
       status: payload.status,
     });
 
+    // Invalidate post caches
+    await this.cacheService.invalidatePostCaches(postId, post.user.id);
+
     return {
       data: this.toPostResponse(post),
     };
@@ -276,7 +296,12 @@ export class PostController {
     response: { status: 204, description: 'Post deleted successfully' },
   })
   async deletePost(@Param('id', ParseUUIDPipe) postId: string) {
+    // Get post to know user id before deletion
+    const post = await this.postService.getPostById(postId, postId, 'ADMIN'); // Admin bypass
     await this.postService.deletePost(postId);
+
+    // Invalidate post caches
+    await this.cacheService.invalidatePostCaches(postId, post.user.id);
   }
 
   /**
@@ -287,6 +312,8 @@ export class PostController {
    */
   @Get('users/:id/posts')
   @HttpCode(HttpStatus.OK)
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(60000) // 60 seconds
   @ApiDocumentation({
     operation: {
       summary: 'Get posts by user ID',

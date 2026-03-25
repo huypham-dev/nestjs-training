@@ -7,6 +7,7 @@ import {
   Collection,
   Enum,
   Opt,
+  Index,
 } from '@mikro-orm/core';
 
 // Base Entity
@@ -20,6 +21,9 @@ import { Category } from '@/modules/category/category.entity';
 import { PostStatus } from '@/constants';
 
 @Entity({ tableName: 'posts' })
+@Index({ properties: ['user'] }) // Index for user_id lookups
+@Index({ properties: ['status', 'createdAt'] }) // Compound index for filtering and sorting
+@Index({ properties: ['title'] }) // Index for title search
 export class Post extends BaseEntity {
   @Property({ type: 'string', fieldName: 'title' })
   title!: string;

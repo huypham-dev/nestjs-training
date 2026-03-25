@@ -7,6 +7,7 @@ import { PostController } from './post.controller';
 
 // Services
 import { PostService } from './post.service';
+import { CacheService } from '@/common/services';
 
 // Guards
 import { PostOwnerOrAdminGuard } from './post.guards';
@@ -19,7 +20,7 @@ import { User } from '@/modules/user/user.entity';
 @Module({
   imports: [MikroOrmModule.forFeature([Post, Category, User])],
   controllers: [PostController],
-  providers: [PostService, PostOwnerOrAdminGuard],
+  providers: [PostService, PostOwnerOrAdminGuard, CacheService],
   exports: [PostService],
 })
 export class PostModule {}
