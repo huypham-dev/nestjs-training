@@ -4,8 +4,10 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
+import { CacheInterceptor } from '@nestjs/cache-manager';
 import { MikroORM } from '@mikro-orm/core';
 import { TestAppModule } from '../support/test-app.module';
+import { NoOpCacheInterceptor } from '../support/noop-cache.interceptor';
 import { MockAuthInterceptor } from '../support/mock-auth.interceptor';
 import { Post } from '@/modules/post/post.entity';
 import { PostCategory } from '@/modules/post/post-category.entity';
@@ -27,7 +29,10 @@ describe('Post API (e2e)', () => {
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [TestAppModule],
-    }).compile();
+    })
+      .overrideInterceptor(CacheInterceptor)
+      .useClass(NoOpCacheInterceptor)
+      .compile();
 
     app = moduleFixture.createNestApplication();
     orm = moduleFixture.get(MikroORM);
@@ -87,7 +92,7 @@ describe('Post API (e2e)', () => {
       name: 'Business',
     });
 
-    await em.persistAndFlush([user1, user2, admin, category1, category2]);
+    await em.persist([user1, user2, admin, category1, category2]).flush();
   });
 
   describe('POST /posts', () => {
@@ -172,7 +177,7 @@ describe('Post API (e2e)', () => {
         user: user2.id, // Use ID instead of entity reference
       });
 
-      await em.persistAndFlush([publishedPost, draftPost, user2Post]);
+      await em.persist([publishedPost, draftPost, user2Post]).flush();
     });
 
     it('should return only published posts for regular users', async () => {
@@ -224,7 +229,7 @@ describe('Post API (e2e)', () => {
         user: user1.id, // Use ID instead of entity reference
       });
 
-      await em.persistAndFlush([publishedPost, draftPost]);
+      await em.persist([publishedPost, draftPost]).flush();
 
       publishedPostId = publishedPost.id;
       draftPostId = draftPost.id;
@@ -314,7 +319,7 @@ describe('Post API (e2e)', () => {
         user: user1.id, // Use ID instead of entity reference
       });
 
-      await em.persistAndFlush(post);
+      await em.persist(post).flush();
       postId = post.id;
     });
 
@@ -375,14 +380,19 @@ describe('Post API (e2e)', () => {
     beforeEach(async () => {
       const em = orm.em.fork();
 
+      // Find user1 in the forked EM context
+      const testUser = await em.findOneOrFail(User, {
+        authId: TEST_USERS.USER1.authId,
+      });
+
       const post = em.create(Post, {
         title: 'Post to Delete',
         content: 'Content to delete',
         status: PostStatus.DRAFT,
-        user: user1.id, // Use ID instead of entity reference
+        user: testUser,
       });
 
-      await em.persistAndFlush(post);
+      await em.persist(post).flush();
       postId = post.id;
     });
 
@@ -437,7 +447,7 @@ describe('Post API (e2e)', () => {
         user: user1.id, // Use ID instead of entity reference
       });
 
-      await em.persistAndFlush([published1, published2, draft]);
+      await em.persist([published1, published2, draft]).flush();
     });
 
     it('should return only published posts for non-owner viewing', async () => {

@@ -32,6 +32,12 @@ export class MockAuthInterceptor implements NestInterceptor {
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
     const request = context.switchToHttp().getRequest();
+
+    // Skip if user is already set by middleware
+    if (request.user) {
+      return next.handle();
+    }
+
     const mockUser = MockAuthInterceptor.mockUser;
 
     if (mockUser) {
@@ -43,6 +49,8 @@ export class MockAuthInterceptor implements NestInterceptor {
       };
 
       // Inject user data (simulating database lookup)
+      // Note: This uses authId as id, which may not match database UUIDs
+      // The middleware should handle actual database user lookup
       request.user = {
         id: mockUser.authId,
         authId: mockUser.authId,

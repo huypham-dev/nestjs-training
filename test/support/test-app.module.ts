@@ -9,6 +9,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { PostgreSqlDriver } from '@mikro-orm/postgresql';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { CacheModule } from '@nestjs/cache-manager';
 
 // Modules
 import { UserModule } from '@/modules/user';
@@ -24,6 +25,9 @@ import { GlobalExceptionFilter } from '@/common/filters';
 
 // Guards
 import { RolesGuard } from '@/common/guards';
+
+// Services
+import { CacheService } from '@/common/services';
 
 // Config
 import { createDatabaseConfig } from '@/config';
@@ -62,11 +66,18 @@ import { MockAuthMiddleware } from './mock-auth.middleware';
         ],
       }),
     }),
+    CacheModule.register({
+      isGlobal: true,
+      store: 'memory', // Use memory store but with very short TTL
+      ttl: 1, // 1 millisecond - effectively disabled for tests
+      max: 1, // Minimal cache size
+    }),
     UserModule,
     CategoryModule,
     PostModule,
   ],
   providers: [
+    CacheService,
     {
       provide: APP_FILTER,
       useClass: GlobalExceptionFilter,

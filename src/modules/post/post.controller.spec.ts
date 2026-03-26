@@ -1,6 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { PostController } from './post.controller';
 import { PostService } from './post.service';
+import { CacheService } from '@/common/services';
 import { PostOwnerOrAdminGuard } from './post.guards';
 import { PostStatus } from '@/constants';
 import {
@@ -26,6 +28,12 @@ describe('PostController', () => {
       getPostsByUserId: jest.fn(),
     };
 
+    const mockCacheService = {
+      invalidate: jest.fn(),
+      invalidatePattern: jest.fn(),
+      invalidatePostCaches: jest.fn(),
+    };
+
     // Mock guard
     const mockGuard = {
       canActivate: jest.fn().mockReturnValue(true),
@@ -37,6 +45,18 @@ describe('PostController', () => {
         {
           provide: PostService,
           useValue: mockPostService,
+        },
+        {
+          provide: CacheService,
+          useValue: mockCacheService,
+        },
+        {
+          provide: CACHE_MANAGER,
+          useValue: {
+            get: jest.fn(),
+            set: jest.fn(),
+            del: jest.fn(),
+          },
         },
       ],
     })
@@ -294,12 +314,24 @@ describe('PostController', () => {
     it('should delete post successfully', async () => {
       // Arrange
       const postId = 'post-123';
+      const user = createUserFixture({ id: 'user-123' });
+      const post = createPostFixture({
+        id: postId,
+        user: user,
+      });
+
+      postService.getPostById.mockResolvedValue(post);
       postService.deletePost.mockResolvedValue(undefined);
 
       // Act
-      await controller.deletePost(postId);
+      await controller.deletePost(postId, user);
 
       // Assert
+      expect(postService.getPostById).toHaveBeenCalledWith(
+        postId,
+        user.id,
+        user.role
+      );
       expect(postService.deletePost).toHaveBeenCalledWith(postId);
     });
   });

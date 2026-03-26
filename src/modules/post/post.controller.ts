@@ -295,9 +295,12 @@ export class PostController {
     ],
     response: { status: 204, description: 'Post deleted successfully' },
   })
-  async deletePost(@Param('id', ParseUUIDPipe) postId: string) {
+  async deletePost(
+    @Param('id', ParseUUIDPipe) postId: string,
+    @CurrentUser() user: User
+  ) {
     // Get post to know user id before deletion
-    const post = await this.postService.getPostById(postId, postId, 'ADMIN'); // Admin bypass
+    const post = await this.postService.getPostById(postId, user.id, user.role);
     await this.postService.deletePost(postId);
 
     // Invalidate post caches

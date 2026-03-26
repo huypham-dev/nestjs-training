@@ -1,6 +1,8 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { UserController } from './user.controller';
 import { UserService } from './user.service';
+import { CacheService } from '@/common/services';
 import { UserStatus } from '@/constants/users';
 import {
   createUserFixture,
@@ -19,12 +21,30 @@ describe('UserController', () => {
       updateUserStatus: jest.fn(),
     };
 
+    const mockCacheService = {
+      invalidate: jest.fn(),
+      invalidatePattern: jest.fn(),
+      invalidateUserCaches: jest.fn(),
+    };
+
     const module: TestingModule = await Test.createTestingModule({
       controllers: [UserController],
       providers: [
         {
           provide: UserService,
           useValue: mockUserService,
+        },
+        {
+          provide: CacheService,
+          useValue: mockCacheService,
+        },
+        {
+          provide: CACHE_MANAGER,
+          useValue: {
+            get: jest.fn(),
+            set: jest.fn(),
+            del: jest.fn(),
+          },
         },
       ],
     }).compile();

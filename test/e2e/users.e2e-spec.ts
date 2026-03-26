@@ -4,8 +4,10 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
+import { CacheInterceptor } from '@nestjs/cache-manager';
 import { MikroORM } from '@mikro-orm/core';
 import { TestAppModule } from '../support/test-app.module';
+import { NoOpCacheInterceptor } from '../support/noop-cache.interceptor';
 import { MockAuthInterceptor } from '../support/mock-auth.interceptor';
 import { UserRole, UserStatus } from '@/constants/users';
 import { User } from '@/modules/user/user.entity';
@@ -19,7 +21,10 @@ describe('User API (e2e)', () => {
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [TestAppModule],
-    }).compile();
+    })
+      .overrideInterceptor(CacheInterceptor)
+      .useClass(NoOpCacheInterceptor)
+      .compile();
 
     app = moduleFixture.createNestApplication();
     orm = moduleFixture.get(MikroORM);
@@ -68,7 +73,7 @@ describe('User API (e2e)', () => {
         status: UserStatus.ACTIVE,
       });
 
-      await em.persistAndFlush([user1, user2, admin]);
+      await em.persist([user1, user2, admin]).flush();
     });
 
     it('should return all users when authenticated as admin', async () => {
@@ -109,7 +114,7 @@ describe('User API (e2e)', () => {
         status: UserStatus.ACTIVE,
       });
 
-      await em.persistAndFlush(user);
+      await em.persist(user).flush();
     });
 
     it('should return current user information', async () => {
@@ -142,7 +147,7 @@ describe('User API (e2e)', () => {
         status: UserStatus.ACTIVE,
       });
 
-      await em.persistAndFlush(user);
+      await em.persist(user).flush();
     });
 
     it('should update current user full name', async () => {
@@ -202,7 +207,7 @@ describe('User API (e2e)', () => {
         status: UserStatus.ACTIVE,
       });
 
-      await em.persistAndFlush([admin, user]);
+      await em.persist([admin, user]).flush();
       userId = user.id;
     });
 

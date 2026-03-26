@@ -4,8 +4,10 @@
 
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
+import { CacheInterceptor } from '@nestjs/cache-manager';
 import { MikroORM } from '@mikro-orm/core';
 import { TestAppModule } from '../support/test-app.module';
+import { NoOpCacheInterceptor } from '../support/noop-cache.interceptor';
 import { MockAuthInterceptor } from '../support/mock-auth.interceptor';
 import { Category } from '@/modules/category/category.entity';
 import { User } from '@/modules/user/user.entity';
@@ -20,7 +22,10 @@ describe('Category API (e2e)', () => {
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [TestAppModule],
-    }).compile();
+    })
+      .overrideInterceptor(CacheInterceptor)
+      .useClass(NoOpCacheInterceptor)
+      .compile();
 
     app = moduleFixture.createNestApplication();
     orm = moduleFixture.get(MikroORM);
@@ -67,7 +72,7 @@ describe('Category API (e2e)', () => {
         name: 'Business',
       });
 
-      await em.persistAndFlush([user, category1, category2, category3]);
+      await em.persist([user, category1, category2, category3]).flush();
     });
 
     it('should return all categories sorted by name', async () => {
