@@ -40,9 +40,7 @@ export class RolesGuard implements CanActivate {
     }
 
     if (!roles.includes(user.role)) {
-      throw new AuthorizationException(
-        'You do not have permission to perform this action'
-      );
+      throw new AuthorizationException();
     }
 
     return true;

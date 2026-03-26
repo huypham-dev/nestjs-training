@@ -5,7 +5,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { PostgreSqlDriver } from '@mikro-orm/postgresql';
 import { clerkMiddleware } from '@clerk/express';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { CacheModule } from '@nestjs/cache-manager';
 
 // Modules
 import { UserModule } from '@/modules/user';
@@ -17,6 +18,9 @@ import { LoggingInterceptor } from '@/common/interceptors';
 
 // Filters
 import { GlobalExceptionFilter } from '@/common/filters';
+
+// Services
+import { CacheService } from '@/common/services';
 
 // Middlewares
 import {
@@ -60,11 +64,17 @@ import { RolesGuard } from './common/guards';
         ],
       }),
     }),
+    CacheModule.register({
+      isGlobal: true,
+      ttl: 60000, // 60 seconds default TTL
+      max: 100, // Maximum number of items in cache
+    }),
     UserModule,
     CategoryModule,
     PostModule,
   ],
   providers: [
+    CacheService,
     {
       provide: APP_FILTER,
       useClass: GlobalExceptionFilter,
@@ -72,6 +82,10 @@ import { RolesGuard } from './common/guards';
     {
       provide: APP_INTERCEPTOR,
       useClass: LoggingInterceptor,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
     },
     {
       provide: APP_GUARD,

@@ -7,32 +7,18 @@ import { UserController } from './user.controller';
 
 // Services
 import { UserService } from './user.service';
+import { CacheService } from '@/common/services';
 
 // Entities
 import { User } from './user.entity';
 
-// Middlewares
-import {
-  ClerkAuthMiddleware,
-  SyncUserMiddleware,
-  CheckUserStatusMiddleware,
-} from '@/common/middlewares';
-
 // Guards
-import { RolesGuard } from '@/common/guards';
 import { PreventSameUserActionGuard } from './user.guards';
 
 @Module({
   imports: [MikroOrmModule.forFeature([User])],
   controllers: [UserController],
-  providers: [
-    UserService,
-    RolesGuard,
-    PreventSameUserActionGuard,
-    ClerkAuthMiddleware,
-    SyncUserMiddleware,
-    CheckUserStatusMiddleware,
-  ],
+  providers: [UserService, PreventSameUserActionGuard, CacheService],
   exports: [UserService],
 })
 export class UserModule {}

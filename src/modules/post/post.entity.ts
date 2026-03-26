@@ -1,15 +1,17 @@
 // Dependencies
 import {
   Entity,
-  PrimaryKey,
   Property,
   ManyToOne,
   ManyToMany,
   Collection,
   Enum,
   Opt,
+  Index,
 } from '@mikro-orm/core';
-import { v4 } from 'uuid';
+
+// Base Entity
+import { BaseEntity } from '@/common/entities';
 
 // Entities
 import { User } from '@/modules/user/user.entity';
@@ -19,10 +21,10 @@ import { Category } from '@/modules/category/category.entity';
 import { PostStatus } from '@/constants';
 
 @Entity({ tableName: 'posts' })
-export class Post {
-  @PrimaryKey({ type: 'uuid', fieldName: 'id' })
-  id: string = v4();
-
+@Index({ properties: ['user'] }) // Index for user_id lookups
+@Index({ properties: ['status', 'createdAt'] }) // Compound index for filtering and sorting
+@Index({ properties: ['title'] }) // Index for title search
+export class Post extends BaseEntity {
   @Property({ type: 'string', fieldName: 'title' })
   title!: string;
 
@@ -44,18 +46,4 @@ export class Post {
     pivotEntity: 'PostCategory',
   })
   categories = new Collection<Category>(this);
-
-  @Property({
-    type: 'timestamp',
-    fieldName: 'created_at',
-    onCreate: () => new Date(),
-  })
-  createdAt: Date & Opt = new Date();
-
-  @Property({
-    type: 'timestamp',
-    fieldName: 'updated_at',
-    onUpdate: () => new Date(),
-  })
-  updatedAt: Date & Opt = new Date();
 }
