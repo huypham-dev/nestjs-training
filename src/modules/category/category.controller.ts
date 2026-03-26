@@ -1,9 +1,19 @@
 // Dependencies
-import { Controller, Get, HttpCode, HttpStatus } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  UseInterceptors,
+} from '@nestjs/common';
 import { ApiTags, ApiSecurity } from '@nestjs/swagger';
+import { CacheInterceptor, CacheKey, CacheTTL } from '@nestjs/cache-manager';
 
 // Common decorators
 import { ApiDocumentation } from '@/common/decorators';
+
+// Constants
+import { CACHE_KEYS } from '@/constants';
 
 // Services
 import { CategoryService } from './category.service';
@@ -18,6 +28,9 @@ export class CategoryController {
 
   @Get()
   @HttpCode(HttpStatus.OK)
+  @UseInterceptors(CacheInterceptor)
+  @CacheKey(CACHE_KEYS.CATEGORIES_LIST)
+  @CacheTTL(300000) // 5 minutes - categories change less frequently
   @ApiDocumentation({
     operation: {
       summary: 'Get all categories',
