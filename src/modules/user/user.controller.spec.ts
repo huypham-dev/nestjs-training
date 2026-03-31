@@ -237,9 +237,7 @@ describe('UserController', () => {
 
       // Assert
       expect(result).toEqual({
-        data: {
-          success: true,
-        },
+        data: updatedUser,
       });
       expect(userService.updateUserStatus).toHaveBeenCalledWith(
         userId,
@@ -262,7 +260,10 @@ describe('UserController', () => {
       const result = await controller.updateUserStatus(userId, payload);
 
       // Assert
-      expect(result.data.success).toBe(true);
+      expect(result).toEqual({
+        data: updatedUser,
+      });
+      expect(result.data.status).toBe(UserStatus.ACTIVE);
       expect(userService.updateUserStatus).toHaveBeenCalledWith(
         userId,
         UserStatus.ACTIVE

@@ -214,10 +214,7 @@ export class UserController {
         type: 'object',
         properties: {
           data: {
-            type: 'object',
-            properties: {
-              success: { type: 'boolean', example: true },
-            },
+            $ref: '#/components/schemas/User',
           },
         },
       },
@@ -228,15 +225,16 @@ export class UserController {
     @Body(new ZodValidationPipe(updateUserStatusSchema))
     payload: UpdateUserStatusDto
   ) {
-    await this.userService.updateUserStatus(userId, payload.status);
+    const updatedUser = await this.userService.updateUserStatus(
+      userId,
+      payload.status
+    );
 
     // Invalidate user caches
     await this.cacheService.invalidateUserCaches(userId);
 
     return {
-      data: {
-        success: true,
-      },
+      data: updatedUser,
     };
   }
 

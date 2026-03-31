@@ -23,15 +23,11 @@ import { GlobalExceptionFilter } from '@/common/filters';
 import { CacheService } from '@/common/services';
 
 // Middlewares
-import {
-  ClerkAuthMiddleware,
-  SyncUserMiddleware,
-  CheckUserStatusMiddleware,
-} from '@/common/middlewares';
+import { ClerkAuthMiddleware, SyncUserMiddleware } from '@/common/middlewares';
 
 // Config
 import { createDatabaseConfig } from '@/config';
-import { RolesGuard } from './common/guards';
+import { ActiveUserGuard, RolesGuard } from './common/guards';
 
 @Module({
   imports: [
@@ -89,6 +85,10 @@ import { RolesGuard } from './common/guards';
     },
     {
       provide: APP_GUARD,
+      useClass: ActiveUserGuard,
+    },
+    {
+      provide: APP_GUARD,
       useClass: RolesGuard,
     },
   ],
@@ -106,8 +106,7 @@ export class AppModule implements NestModule {
           secretKey: this.configService.get<string>('CLERK_SECRET_KEY'),
         }),
         ClerkAuthMiddleware,
-        SyncUserMiddleware,
-        CheckUserStatusMiddleware
+        SyncUserMiddleware
       )
       .forRoutes('*');
   }

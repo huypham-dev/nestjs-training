@@ -8,7 +8,6 @@ import { BaseEntity } from '@/common/entities';
 import { UserRole, UserStatus } from '@/constants/users';
 
 @Entity({ tableName: 'users' })
-@Index({ properties: ['email'] }) // Index for email lookups
 @Index({ properties: ['role', 'status'] }) // Compound index for filtering
 @Index({ properties: ['createdAt'] }) // Index for sorting by date
 export class User extends BaseEntity {

@@ -23,7 +23,6 @@ import { PostStatus } from '@/constants';
 @Entity({ tableName: 'posts' })
 @Index({ properties: ['user'] }) // Index for user_id lookups
 @Index({ properties: ['status', 'createdAt'] }) // Compound index for filtering and sorting
-@Index({ properties: ['title'] }) // Index for title search
 export class Post extends BaseEntity {
   @Property({ type: 'string', fieldName: 'title' })
   title!: string;

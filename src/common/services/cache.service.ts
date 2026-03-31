@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import type { Cache } from 'cache-manager';
-import { CACHE_KEYS, CACHE_PATTERNS } from '@/constants';
+import { CACHE_KEYS } from '@/constants';
 
 /**
  * Cache Service for centralized cache management
@@ -16,9 +16,9 @@ export class CacheService {
    */
   async invalidateUserCaches(userId?: string): Promise<void> {
     const patterns = [
-      CACHE_PATTERNS.USERS_LIST_ALL, // All users list cache
+      CACHE_KEYS.USERS_LIST, // All users list cache
       userId ? CACHE_KEYS.USER_DETAIL(userId) : null, // Specific user cache
-      userId ? CACHE_PATTERNS.USER_POSTS_ALL(userId) : null, // User's posts cache
+      userId ? CACHE_KEYS.USER_POSTS(userId) : null, // User's posts cache
     ].filter(Boolean) as string[];
 
     await this.invalidateByPatterns(patterns);
@@ -29,9 +29,9 @@ export class CacheService {
    */
   async invalidatePostCaches(postId?: string, userId?: string): Promise<void> {
     const patterns = [
-      CACHE_PATTERNS.POSTS_LIST_ALL, // All posts list cache
+      CACHE_KEYS.POSTS_LIST, // All posts list cache
       postId ? CACHE_KEYS.POST_DETAIL(postId) : null, // Specific post cache
-      userId ? CACHE_PATTERNS.USER_POSTS_ALL(userId) : null, // User's posts cache
+      userId ? CACHE_KEYS.USER_POSTS(userId) : null, // User's posts cache
     ].filter(Boolean) as string[];
 
     await this.invalidateByPatterns(patterns);
@@ -41,10 +41,7 @@ export class CacheService {
    * Invalidate all category-related caches
    */
   async invalidateCategoryCaches(): Promise<void> {
-    const patterns = [
-      CACHE_KEYS.CATEGORIES_LIST,
-      CACHE_PATTERNS.POSTS_LIST_ALL,
-    ]; // Categories affect post lists too
+    const patterns = [CACHE_KEYS.CATEGORIES_LIST, CACHE_KEYS.POSTS_LIST]; // Categories affect post lists too
     await this.invalidateByPatterns(patterns);
   }
 

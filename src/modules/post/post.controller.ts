@@ -174,8 +174,8 @@ export class PostController {
    */
   @Get('posts/:id')
   @HttpCode(HttpStatus.OK)
-  @UseInterceptors(CacheInterceptor)
-  @CacheTTL(60000) // 60 seconds
+  // @UseInterceptors(CacheInterceptor)
+  // @CacheTTL(60000) // 60 seconds
   @ApiDocumentation({
     operation: {
       summary: 'Get post by ID',
@@ -372,6 +372,7 @@ export class PostController {
       {
         offset: query.offset ?? 0,
         limit: query.limit ?? 10,
+        status: query.status,
       }
     );
 

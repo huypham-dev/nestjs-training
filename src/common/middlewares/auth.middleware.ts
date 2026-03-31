@@ -6,14 +6,8 @@ import { getAuth } from '@clerk/express';
 // Services
 import { UserService } from '@/modules/user/user.service';
 
-// Constants
-import { UserStatus } from '@/constants/users';
-
 // Exceptions
-import {
-  AuthenticationException,
-  InactiveUserException,
-} from '@/common/exceptions';
+import { AuthenticationException } from '@/common/exceptions';
 
 /**
  * Extract Clerk auth info and attach to request.auth
@@ -69,25 +63,5 @@ export class SyncUserMiddleware implements NestMiddleware {
       // Let exception filter handle it
       next(error);
     }
-  }
-}
-
-/**
- * Check if user account is active
- */
-@Injectable()
-export class CheckUserStatusMiddleware implements NestMiddleware {
-  use(req: Request, _res: Response, next: NextFunction) {
-    const user = req.user;
-
-    if (!user) {
-      throw new AuthenticationException();
-    }
-
-    if ((user.status as UserStatus) === UserStatus.INACTIVE) {
-      throw new InactiveUserException('User account is inactive');
-    }
-
-    next();
   }
 }

@@ -42,7 +42,7 @@ export class PostService {
   async getAllPosts(
     options: PostQueryDto,
     currentUserId: string,
-    currentUserRole: string
+    currentUserRole: 'admin' | 'user'
   ): Promise<SuccessResponse<Post[]>> {
     const offset = options.offset ?? 0;
     const limit = options.limit ?? 10;
@@ -78,11 +78,12 @@ export class PostService {
    * - Owner can see all their posts (DRAFT + PUBLISHED)
    * - Admin can see all posts
    * - Others can only see PUBLISHED posts
+   * Supports filtering by status query parameter
    */
   async getPostsByUserId(
     targetUserId: string,
     currentUserId: string,
-    currentUserRole: string,
+    currentUserRole: 'admin' | 'user',
     options: PostQueryDto
   ): Promise<SuccessResponse<Post[]>> {
     const offset = options.offset ?? 0;
@@ -96,16 +97,24 @@ export class PostService {
       );
     }
 
-    // Build where condition based on ownership and role
-    const where: FilterQuery<Post> = { user: targetUserId };
-
-    // If not owner and not admin, only show published posts
     const isOwner = targetUserId === currentUserId;
     const isAdmin = currentUserRole === 'admin';
 
-    if (!isOwner && !isAdmin) {
-      where.status = PostStatus.PUBLISHED;
+    // Special case: non-owner, non-admin requesting DRAFT posts
+    // Return empty results immediately
+    if (options.status === PostStatus.DRAFT && !isOwner && !isAdmin) {
+      return {
+        data: [],
+      };
     }
+
+    // Build query using shared buildPostQuery method
+    const where = this.buildPostQuery(
+      options.status,
+      currentUserId,
+      currentUserRole,
+      targetUserId
+    );
 
     const [posts, total] = await this.postRepository.findAndCount(where, {
       offset,
@@ -126,52 +135,6 @@ export class PostService {
         },
       }),
     };
-  }
-
-  /**
-   * Build query filter based on status and current user
-   */
-  private buildPostQuery(
-    status: PostStatus | undefined,
-    currentUserId: string,
-    currentUserRole: string
-  ): FilterQuery<Post> {
-    const isAdmin = currentUserRole === 'admin';
-
-    // Case 1: No status provided
-    // - Admin sees ALL posts
-    // - Regular users see only PUBLISHED posts
-    if (!status) {
-      if (isAdmin) {
-        return {}; // No filter - return all posts
-      }
-      return {
-        status: PostStatus.PUBLISHED,
-      };
-    }
-
-    // Case 2: status = PUBLISHED
-    // Return all PUBLISHED posts
-    if (status === PostStatus.PUBLISHED) {
-      return {
-        status: PostStatus.PUBLISHED,
-      };
-    }
-
-    // Case 3: status = DRAFT
-    // Admin sees all drafts, regular users see only their own drafts
-    if (status === PostStatus.DRAFT) {
-      if (isAdmin) {
-        return { status: PostStatus.DRAFT };
-      }
-      return {
-        status: PostStatus.DRAFT,
-        user: currentUserId,
-      };
-    }
-
-    // Fallback (should not reach here)
-    return {};
   }
 
   /**
@@ -334,5 +297,71 @@ export class PostService {
     // Delete the post
     this.em.remove(post);
     await this.em.flush();
+  }
+
+  /**
+   * Build query filter based on status and current user
+   * @param status - Optional status filter (PUBLISHED or DRAFT)
+   * @param currentUserId - ID of the current authenticated user
+   * @param currentUserRole - Role of the current user (admin or regular)
+   * @param targetUserId - Optional: Filter posts by this specific user
+   */
+  private buildPostQuery(
+    status: PostStatus | undefined,
+    currentUserId: string,
+    currentUserRole: 'admin' | 'user',
+    targetUserId?: string
+  ): FilterQuery<Post> {
+    const isAdmin = currentUserRole === 'admin';
+    const where: FilterQuery<Post> = {};
+
+    // Add user filter if targetUserId is provided
+    if (targetUserId) {
+      where.user = targetUserId;
+    }
+
+    // Case 1: No status provided
+    if (!status) {
+      if (targetUserId) {
+        // For specific user posts:
+        // - Owner and admin see all posts
+        // - Others see only PUBLISHED posts
+        const isOwner = targetUserId === currentUserId;
+        if (!isOwner && !isAdmin) {
+          where.status = PostStatus.PUBLISHED;
+        }
+      } else {
+        // For all posts:
+        // - Admin sees ALL posts
+        // - Regular users can see PUBLISHED posts and their own DRAFT posts
+        if (!isAdmin) {
+          where.$or = [
+            { status: PostStatus.PUBLISHED },
+            { status: PostStatus.DRAFT, user: currentUserId },
+          ];
+        }
+      }
+      return where;
+    }
+
+    // Case 2: status = PUBLISHED
+    // Return all PUBLISHED posts
+    if (status === PostStatus.PUBLISHED) {
+      where.status = PostStatus.PUBLISHED;
+      return where;
+    }
+
+    // Case 3: status = DRAFT
+    if (status === PostStatus.DRAFT) {
+      where.status = PostStatus.DRAFT;
+      // For getAllPosts: Admin sees all drafts, regular users see only their own drafts
+      if (!targetUserId && !isAdmin) {
+        where.user = currentUserId;
+      }
+      return where;
+    }
+
+    // Fallback (should not reach here)
+    return where;
   }
 }

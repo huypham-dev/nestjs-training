@@ -221,7 +221,8 @@ describe('User API (e2e)', () => {
 
       expect(response.body).toHaveProperty('data');
       expect(response.body.data).toMatchObject({
-        success: true,
+        id: userId,
+        status: UserStatus.INACTIVE,
       });
     });
 
