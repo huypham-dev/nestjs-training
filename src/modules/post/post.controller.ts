@@ -15,7 +15,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { ApiTags, ApiSecurity } from '@nestjs/swagger';
-import { CacheInterceptor, CacheKey, CacheTTL } from '@nestjs/cache-manager';
+import { CacheInterceptor, CacheKey } from '@nestjs/cache-manager';
 
 // Common decorators
 import { ApiDocumentation } from '@/common/decorators';
@@ -70,7 +70,7 @@ export class PostController {
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(CacheInterceptor)
   @CacheKey(CACHE_KEYS.POSTS_LIST)
-  @CacheTTL(60000) // 60 seconds
+  // @CacheTTL(60000) // 60 seconds
   @ApiDocumentation({
     operation: {
       summary: 'Get all posts',
@@ -316,7 +316,7 @@ export class PostController {
   @Get('users/:id/posts')
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(CacheInterceptor)
-  @CacheTTL(60000) // 60 seconds
+  // @CacheTTL(60000) // 60 seconds
   @ApiDocumentation({
     operation: {
       summary: 'Get posts by user ID',

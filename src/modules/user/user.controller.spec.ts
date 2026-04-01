@@ -17,7 +17,7 @@ describe('UserController', () => {
     // Create mock service
     const mockUserService = {
       getAllUsers: jest.fn(),
-      updateUserByAuthId: jest.fn(),
+      updateUserById: jest.fn(),
       updateUserStatus: jest.fn(),
     };
 
@@ -176,7 +176,7 @@ describe('UserController', () => {
         ...updateData,
       });
 
-      userService.updateUserByAuthId.mockResolvedValue(updatedUser);
+      userService.updateUserById.mockResolvedValue(updatedUser);
 
       // Act
       const result = await controller.updateCurrentUser(
@@ -188,8 +188,8 @@ describe('UserController', () => {
       expect(result).toEqual({
         data: updatedUser,
       });
-      expect(userService.updateUserByAuthId).toHaveBeenCalledWith(
-        currentUser.authId,
+      expect(userService.updateUserById).toHaveBeenCalledWith(
+        currentUser.id,
         updateData
       );
     });
@@ -203,7 +203,7 @@ describe('UserController', () => {
         fullName: 'New Name',
       });
 
-      userService.updateUserByAuthId.mockResolvedValue(updatedUser);
+      userService.updateUserById.mockResolvedValue(updatedUser);
 
       // Act
       const result = await controller.updateCurrentUser(
@@ -213,8 +213,8 @@ describe('UserController', () => {
 
       // Assert
       expect(result.data.fullName).toBe('New Name');
-      expect(userService.updateUserByAuthId).toHaveBeenCalledWith(
-        currentUser.authId,
+      expect(userService.updateUserById).toHaveBeenCalledWith(
+        currentUser.id,
         updateData
       );
     });

@@ -44,6 +44,17 @@ export class ResourceNotFoundException extends DomainException {
 }
 
 /**
+ * Exception for duplicate resource errors (e.g., unique constraint violations)
+ */
+export class DuplicateResourceException extends DomainException {
+  readonly code = ErrorCodes.DUPLICATE_RESOURCE;
+
+  constructor(message: string, context?: Record<string, any>) {
+    super(message, HttpStatus.CONFLICT, context);
+  }
+}
+
+/**
  * Exception for inactive user accounts
  */
 export class InactiveUserException extends DomainException {

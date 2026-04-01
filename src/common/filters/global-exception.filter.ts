@@ -8,9 +8,13 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { UniqueConstraintViolationException } from '@mikro-orm/core';
 
 // Exceptions
-import { DomainException } from '@/common/exceptions/base.exception';
+import {
+  DomainException,
+  DuplicateResourceException,
+} from '@/common/exceptions/base.exception';
 
 // Interfaces
 import { ErrorResponse } from '@/common/interfaces/response.interface';
@@ -54,6 +58,22 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     status: number;
     body: ErrorResponse;
   } {
+    // Handle MikroORM UniqueConstraintViolationException
+    if (exception instanceof UniqueConstraintViolationException) {
+      const duplicateException =
+        this.handleUniqueConstraintViolation(exception);
+      const statusCode = duplicateException.getStatus();
+      return {
+        status: statusCode,
+        body: {
+          statusCode,
+          code: duplicateException.code,
+          message: duplicateException.message,
+          ...(this.isDevelopment && { stack: exception.stack }),
+        },
+      };
+    }
+
     // Handle DomainException (our custom exceptions)
     if (exception instanceof DomainException) {
       const statusCode = exception.getStatus();
@@ -105,6 +125,40 @@ export class GlobalExceptionFilter implements ExceptionFilter {
 
     // Handle unknown errors (system errors)
     return this.handleUnknownError(exception);
+  }
+
+  /**
+   * Handles MikroORM unique constraint violations
+   */
+  private handleUniqueConstraintViolation(
+    exception: UniqueConstraintViolationException
+  ): DuplicateResourceException {
+    // Extract field name from the error message
+    const message = exception.message;
+    let field = 'resource';
+
+    // Try to extract the field name from the constraint name
+    // Example: "users_email_unique" -> "email"
+    const constraintMatch = message.match(/constraint "\w+_(\w+)_unique"/);
+    if (constraintMatch && constraintMatch[1]) {
+      field = constraintMatch[1];
+    }
+
+    // Try to extract the actual value that caused the duplicate
+    const valueMatch = message.match(/Key \((\w+)\)=\(([^)]+)\)/);
+    let value: string | undefined;
+    if (valueMatch && valueMatch[2]) {
+      value = valueMatch[2];
+    }
+
+    const errorMessage = value
+      ? `A ${field} with the value "${value}" already exists`
+      : `This ${field} already exists`;
+
+    return new DuplicateResourceException(errorMessage, {
+      field,
+      ...(value && { value }),
+    });
   }
 
   /**

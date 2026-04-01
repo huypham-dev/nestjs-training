@@ -108,36 +108,6 @@ describe('UserService', () => {
     });
   });
 
-  describe('getUserByAuthId', () => {
-    it('should return user when found by authId', async () => {
-      // Arrange
-      const user = createUserFixture();
-      userRepository.findOne.mockResolvedValue(user);
-
-      // Act
-      const result = await service.getUserByAuthId('auth-123');
-
-      // Assert
-      expect(result).toEqual(user);
-      expect(userRepository.findOne).toHaveBeenCalledWith({
-        authId: 'auth-123',
-      });
-    });
-
-    it('should throw ResourceNotFoundException when user not found', async () => {
-      // Arrange
-      userRepository.findOne.mockResolvedValue(null);
-
-      // Act & Assert
-      await expect(service.getUserByAuthId('non-existent')).rejects.toThrow(
-        ResourceNotFoundException
-      );
-      await expect(service.getUserByAuthId('non-existent')).rejects.toThrow(
-        'User not found in system'
-      );
-    });
-  });
-
   describe('getUserById', () => {
     it('should return user when found by id', async () => {
       // Arrange
@@ -163,7 +133,7 @@ describe('UserService', () => {
     });
   });
 
-  describe('updateUserByAuthId', () => {
+  describe('updateUserById', () => {
     it('should update user fullName and email', async () => {
       // Arrange
       const user = createUserFixture();
@@ -176,7 +146,7 @@ describe('UserService', () => {
       };
 
       // Act
-      const result = await service.updateUserByAuthId('auth-123', payload);
+      const result = await service.updateUserById(user.id, payload);
 
       // Assert
       expect(result.fullName).toBe('Updated Name');
@@ -191,7 +161,7 @@ describe('UserService', () => {
       entityManager.flush.mockResolvedValue(undefined);
 
       // Act
-      const result = await service.updateUserByAuthId('auth-123', {
+      const result = await service.updateUserById(user.id, {
         fullName: 'New Name',
       });
 
@@ -207,7 +177,7 @@ describe('UserService', () => {
 
       // Act & Assert
       await expect(
-        service.updateUserByAuthId('non-existent', { fullName: 'Test' })
+        service.updateUserById('non-existent', { fullName: 'Test' })
       ).rejects.toThrow(ResourceNotFoundException);
     });
   });

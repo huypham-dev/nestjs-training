@@ -13,7 +13,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { ApiTags, ApiSecurity } from '@nestjs/swagger';
-import { CacheInterceptor, CacheKey, CacheTTL } from '@nestjs/cache-manager';
+import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 
 // Common decorators
 import { ApiDocumentation } from '@/common/decorators';
@@ -49,7 +49,7 @@ import { CurrentUser, Roles } from './user.decorators';
 
 // Constants
 import { UserRole } from '@/constants/users';
-import { CACHE_KEYS } from '@/constants';
+// import { CACHE_KEYS } from '@/constants';
 
 @ApiTags('Users')
 @ApiSecurity('clerk-auth')
@@ -65,8 +65,8 @@ export class UserController {
   @HttpCode(HttpStatus.OK)
   @Roles(UserRole.ADMIN)
   @UseInterceptors(CacheInterceptor)
-  @CacheKey(CACHE_KEYS.USERS_LIST)
-  @CacheTTL(60000) // 60 seconds
+  // @CacheKey(CACHE_KEYS.USERS_LIST)
+  // @CacheTTL(60000) // 60 seconds
   @ApiDocumentation({
     operation: {
       summary: 'Get all users (Admin only)',
@@ -171,10 +171,7 @@ export class UserController {
     @Body(new ZodValidationPipe(updateCurrentUserSchema))
     payload: updateCurrentUserDto
   ) {
-    const updatedUser = await this.userService.updateUserByAuthId(
-      user.authId,
-      payload
-    );
+    const updatedUser = await this.userService.updateUserById(user.id, payload);
 
     // Invalidate user caches
     await this.cacheService.invalidateUserCaches(user.id);

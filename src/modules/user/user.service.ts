@@ -50,17 +50,6 @@ export class UserService {
     };
   }
 
-  // Get user by their authentication Clerk ID
-  async getUserByAuthId(authId: string): Promise<User> {
-    const user = await this.userRepository.findOne({ authId });
-
-    if (!user) {
-      throw new ResourceNotFoundException('User not found in system');
-    }
-
-    return user;
-  }
-
   // Get user by their internal system ID
   async getUserById(id: string): Promise<User> {
     const user = await this.userRepository.findOne({ id });
@@ -72,16 +61,12 @@ export class UserService {
     return user;
   }
 
-  // Update user by their authentication Clerk ID
-  async updateUserByAuthId(
-    authId: string,
+  // Update user by their internal system ID
+  async updateUserById(
+    id: string,
     payload: Partial<Pick<User, 'fullName' | 'email'>>
   ): Promise<User> {
-    const user = await this.userRepository.findOne({ authId });
-
-    if (!user) {
-      throw new ResourceNotFoundException('User not found in system');
-    }
+    const user = await this.getUserById(id);
 
     Object.assign(user, payload);
 
