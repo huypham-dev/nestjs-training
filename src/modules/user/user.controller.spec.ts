@@ -17,6 +17,7 @@ describe('UserController', () => {
     // Create mock service
     const mockUserService = {
       getAllUsers: jest.fn(),
+      getUserById: jest.fn(),
       updateUserById: jest.fn(),
       updateUserStatus: jest.fn(),
     };
@@ -145,6 +146,48 @@ describe('UserController', () => {
       // Assert
       expect(result.data).toEqual([]);
       expect(result.meta?.pagination.total).toBe(0);
+    });
+  });
+
+  describe('getUserById', () => {
+    it('should return user by id', async () => {
+      // Arrange
+      const userId = 'user-123';
+      const user = createUserFixture({ id: userId });
+      userService.getUserById.mockResolvedValue(user);
+
+      // Act
+      const result = await controller.getUserById(userId);
+
+      // Assert
+      expect(result).toEqual({
+        data: {
+          id: user.id,
+          authId: user.authId,
+          fullName: user.fullName,
+          email: user.email,
+          role: user.role,
+          status: user.status,
+          createdAt: expect.any(String),
+          updatedAt: expect.any(String),
+        },
+      });
+      expect(userService.getUserById).toHaveBeenCalledWith(userId);
+    });
+
+    it('should return admin user by id', async () => {
+      // Arrange
+      const userId = 'admin-123';
+      const adminUser = createAdminUserFixture({ id: userId });
+      userService.getUserById.mockResolvedValue(adminUser);
+
+      // Act
+      const result = await controller.getUserById(userId);
+
+      // Assert
+      expect(result.data.id).toBe(userId);
+      expect(result.data.role).toBe(adminUser.role);
+      expect(userService.getUserById).toHaveBeenCalledWith(userId);
     });
   });
 

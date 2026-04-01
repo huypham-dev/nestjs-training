@@ -12,10 +12,8 @@ import {
   Patch,
   UseGuards,
   ParseUUIDPipe,
-  UseInterceptors,
 } from '@nestjs/common';
 import { ApiTags, ApiSecurity } from '@nestjs/swagger';
-import { CacheInterceptor, CacheKey } from '@nestjs/cache-manager';
 
 // Common decorators
 import { ApiDocumentation } from '@/common/decorators';
@@ -25,7 +23,6 @@ import { PostService } from './post.service';
 import { CacheService } from '@/common/services';
 
 // Constants
-import { CACHE_KEYS } from '@/constants';
 
 // DTOs
 import {
@@ -42,7 +39,10 @@ import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
 import { CurrentUser } from '@/modules/user/user.decorators';
 
 // Guards
-import { PostOwnerOrAdminGuard } from '@/modules/post/post.guards';
+import {
+  PostOwnerGuard,
+  PostOwnerOrAdminGuard,
+} from '@/modules/post/post.guards';
 
 // Entities
 import { Post as PostEntity } from './post.entity';
@@ -68,14 +68,14 @@ export class PostController {
    */
   @Get('posts')
   @HttpCode(HttpStatus.OK)
-  @UseInterceptors(CacheInterceptor)
-  @CacheKey(CACHE_KEYS.POSTS_LIST)
+  // @UseInterceptors(CacheInterceptor)
+  // @CacheKey(CACHE_KEYS.POSTS_LIST)
   // @CacheTTL(60000) // 60 seconds
   @ApiDocumentation({
     operation: {
       summary: 'Get all posts',
       description:
-        'Retrieve a paginated list of posts. Users can see their own posts (DRAFT + PUBLISHED) and PUBLISHED posts from others. Admins can see all posts.',
+        'Retrieve a paginated list of posts. Users can see their own posts (DRAFT + PUBLISHED) and PUBLISHED posts from others. Supports searching by title and filtering by status.',
     },
     response: {
       status: 200,
@@ -170,7 +170,7 @@ export class PostController {
    * GET /posts/:id
    * Get a single post by ID
    * - Anyone can view PUBLISHED posts
-   * - Only owner and admin can view DRAFT posts
+   * - Only owner can view DRAFT posts
    */
   @Get('posts/:id')
   @HttpCode(HttpStatus.OK)
@@ -180,7 +180,7 @@ export class PostController {
     operation: {
       summary: 'Get post by ID',
       description:
-        'Retrieve a single post by its UUID. Anyone can view PUBLISHED posts, but only the owner or admin can view DRAFT posts.',
+        'Retrieve a single post by its UUID. Anyone can view PUBLISHED posts, but only the owner can view DRAFT posts.',
     },
     params: [
       {
@@ -206,7 +206,7 @@ export class PostController {
     @CurrentUser() user: User,
     @Param('id', ParseUUIDPipe) postId: string
   ) {
-    const post = await this.postService.getPostById(postId, user.id, user.role);
+    const post = await this.postService.getPostById(postId, user.id);
 
     return {
       data: this.toPostResponse(post),
@@ -220,12 +220,12 @@ export class PostController {
    */
   @Patch('posts/:id')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(PostOwnerOrAdminGuard)
+  @UseGuards(PostOwnerGuard)
   @ApiDocumentation({
     operation: {
       summary: 'Update post by ID',
       description:
-        'Update an existing post. Only the post owner or administrators can update posts. All fields are optional.',
+        'Update an existing post. Only the post owner can update posts. All fields are optional.',
     },
     params: [
       {
@@ -300,7 +300,7 @@ export class PostController {
     @CurrentUser() user: User
   ) {
     // Get post to know user id before deletion
-    const post = await this.postService.getPostById(postId, user.id, user.role);
+    const post = await this.postService.getPostById(postId, user.id);
     await this.postService.deletePost(postId);
 
     // Invalidate post caches
@@ -314,14 +314,14 @@ export class PostController {
    * - Others can only see PUBLISHED posts
    */
   @Get('users/:id/posts')
-  @HttpCode(HttpStatus.OK)
-  @UseInterceptors(CacheInterceptor)
+  // @HttpCode(HttpStatus.OK)
+  // @UseInterceptors(CacheInterceptor)
   // @CacheTTL(60000) // 60 seconds
   @ApiDocumentation({
     operation: {
       summary: 'Get posts by user ID',
       description:
-        'Retrieve all posts created by a specific user. The post owner and admins can see all posts (DRAFT + PUBLISHED), while others can only see PUBLISHED posts.',
+        'Retrieve all posts created by a specific user. The post owner can see all posts (DRAFT + PUBLISHED), while others can only see PUBLISHED posts. Supports searching by title and filtering by status.',
     },
     params: [
       {
@@ -373,6 +373,7 @@ export class PostController {
         offset: query.offset ?? 0,
         limit: query.limit ?? 10,
         status: query.status,
+        search: query.search,
       }
     );
 

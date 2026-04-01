@@ -35,8 +35,8 @@ export class PostService {
 
   /**
    * Get posts with visibility rules:
-   * - Returns only PUBLISHED posts by default (for regular users)
-   * - Admin can see ALL posts (published + draft)
+   * - Returns PUBLISHED posts from all users
+   * - Returns current user's DRAFT posts only
    * - Use status query param to filter (e.g., status=draft shows current user's drafts)
    */
   async getAllPosts(
@@ -51,7 +51,9 @@ export class PostService {
     const where = this.buildPostQuery(
       options.status,
       currentUserId,
-      currentUserRole
+      currentUserRole,
+      undefined,
+      options.search
     );
 
     const [posts, total] = await this.postRepository.findAndCount(where, {
@@ -76,7 +78,6 @@ export class PostService {
   /**
    * Get posts by a specific user with visibility rules:
    * - Owner can see all their posts (DRAFT + PUBLISHED)
-   * - Admin can see all posts
    * - Others can only see PUBLISHED posts
    * Supports filtering by status query parameter
    */
@@ -98,11 +99,10 @@ export class PostService {
     }
 
     const isOwner = targetUserId === currentUserId;
-    const isAdmin = currentUserRole === 'admin';
 
-    // Special case: non-owner, non-admin requesting DRAFT posts
+    // Special case: non-owner requesting DRAFT posts
     // Return empty results immediately
-    if (options.status === PostStatus.DRAFT && !isOwner && !isAdmin) {
+    if (options.status === PostStatus.DRAFT && !isOwner) {
       return {
         data: [],
       };
@@ -113,7 +113,8 @@ export class PostService {
       options.status,
       currentUserId,
       currentUserRole,
-      targetUserId
+      targetUserId,
+      options.search
     );
 
     const [posts, total] = await this.postRepository.findAndCount(where, {
@@ -186,13 +187,9 @@ export class PostService {
   /**
    * Get a single post by ID
    * - Anyone can view PUBLISHED posts
-   * - Only owner and admin can view DRAFT posts
+   * - Only owner can view DRAFT posts
    */
-  async getPostById(
-    postId: string,
-    currentUserId: string,
-    currentUserRole: string
-  ): Promise<Post> {
+  async getPostById(postId: string, currentUserId: string): Promise<Post> {
     const post = await this.postRepository.findOne(
       { id: postId },
       { populate: ['user', 'categories'] }
@@ -203,15 +200,10 @@ export class PostService {
     }
 
     // Check visibility rules
-    // If post is DRAFT, only owner and admin can view
+    // If post is DRAFT, only owner can view
     const isOwner = post.user.id === currentUserId;
-    const isAdmin = currentUserRole === 'admin';
 
-    if (
-      (post.status as PostStatus) === PostStatus.DRAFT &&
-      !isOwner &&
-      !isAdmin
-    ) {
+    if ((post.status as PostStatus) === PostStatus.DRAFT && !isOwner) {
       throw new AuthorizationException(
         'You do not have permission to view this post'
       );
@@ -221,7 +213,7 @@ export class PostService {
   }
   /**
    *  Update a post by ID
-   *  - Authorization checked by PostOwnerOrAdminGuard
+   *  - Authorization checked by PostOwnerGuard
    */
   async updatePost(postId: string, data: UpdatePostDto): Promise<Post> {
     const post = await this.postRepository.findOne(
@@ -305,36 +297,60 @@ export class PostService {
    * @param currentUserId - ID of the current authenticated user
    * @param currentUserRole - Role of the current user (admin or regular)
    * @param targetUserId - Optional: Filter posts by this specific user
+   * @param search - Optional: Search posts by title (case-insensitive)
    */
   private buildPostQuery(
     status: PostStatus | undefined,
     currentUserId: string,
     currentUserRole: 'admin' | 'user',
-    targetUserId?: string
+    targetUserId?: string,
+    search?: string
   ): FilterQuery<Post> {
-    const isAdmin = currentUserRole === 'admin';
     const where: FilterQuery<Post> = {};
+
+    // Normalize search: treat empty string as undefined
+    const normalizedSearch =
+      search && search.trim().length > 0 ? search.trim() : undefined;
 
     // Add user filter if targetUserId is provided
     if (targetUserId) {
       where.user = targetUserId;
     }
 
+    // Add search filter if search query is provided
+    if (normalizedSearch) {
+      where.title = { $ilike: `%${normalizedSearch}%` };
+    }
+
     // Case 1: No status provided
     if (!status) {
       if (targetUserId) {
         // For specific user posts:
-        // - Owner and admin see all posts
+        // - Owner sees all posts (DRAFT + PUBLISHED)
         // - Others see only PUBLISHED posts
         const isOwner = targetUserId === currentUserId;
-        if (!isOwner && !isAdmin) {
+        if (!isOwner) {
           where.status = PostStatus.PUBLISHED;
         }
       } else {
         // For all posts:
-        // - Admin sees ALL posts
-        // - Regular users can see PUBLISHED posts and their own DRAFT posts
-        if (!isAdmin) {
+        // - All users can see PUBLISHED posts and their own DRAFT posts
+        // If search is applied, need to include it in $or conditions
+        if (normalizedSearch) {
+          where.$or = [
+            {
+              status: PostStatus.PUBLISHED,
+              title: { $ilike: `%${normalizedSearch}%` },
+            },
+            {
+              status: PostStatus.DRAFT,
+              user: currentUserId,
+              title: { $ilike: `%${normalizedSearch}%` },
+            },
+          ];
+          // Remove title from top level since it's in $or
+          delete where.title;
+        } else {
           where.$or = [
             { status: PostStatus.PUBLISHED },
             { status: PostStatus.DRAFT, user: currentUserId },
@@ -354,8 +370,8 @@ export class PostService {
     // Case 3: status = DRAFT
     if (status === PostStatus.DRAFT) {
       where.status = PostStatus.DRAFT;
-      // For getAllPosts: Admin sees all drafts, regular users see only their own drafts
-      if (!targetUserId && !isAdmin) {
+      // Only show current user's DRAFT posts
+      if (!targetUserId) {
         where.user = currentUserId;
       }
       return where;

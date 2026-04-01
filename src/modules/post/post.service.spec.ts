@@ -143,6 +143,71 @@ describe('PostService', () => {
         expect.any(Object)
       );
     });
+
+    it('should search posts by title (case-insensitive)', async () => {
+      // Arrange
+      const searchQuery = 'nestjs';
+      const posts = [
+        createPublishedPostFixture({ title: 'Getting Started with NestJS' }),
+        createPublishedPostFixture({ title: 'Advanced NestJS Patterns' }),
+      ];
+      postRepository.findAndCount.mockResolvedValue([posts, 2]);
+
+      // Act
+      await service.getAllPosts(
+        { offset: 0, limit: 10, search: searchQuery },
+        currentUserId,
+        UserRole.USER
+      );
+
+      // Assert - when no status, search is included in $or conditions
+      expect(postRepository.findAndCount).toHaveBeenCalledWith(
+        expect.objectContaining({
+          $or: [
+            {
+              status: PostStatus.PUBLISHED,
+              title: { $ilike: `%${searchQuery}%` },
+            },
+            {
+              status: PostStatus.DRAFT,
+              user: currentUserId,
+              title: { $ilike: `%${searchQuery}%` },
+            },
+          ],
+        }),
+        expect.any(Object)
+      );
+    });
+
+    it('should combine search with status filter', async () => {
+      // Arrange
+      const searchQuery = 'typescript';
+      const posts = [
+        createPublishedPostFixture({ title: 'TypeScript Best Practices' }),
+      ];
+      postRepository.findAndCount.mockResolvedValue([posts, 1]);
+
+      // Act
+      await service.getAllPosts(
+        {
+          offset: 0,
+          limit: 10,
+          status: PostStatus.PUBLISHED,
+          search: searchQuery,
+        },
+        currentUserId,
+        UserRole.USER
+      );
+
+      // Assert
+      expect(postRepository.findAndCount).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: PostStatus.PUBLISHED,
+          title: { $ilike: `%${searchQuery}%` },
+        }),
+        expect.any(Object)
+      );
+    });
   });
 
   describe('getPostsByUserId', () => {
@@ -201,6 +266,33 @@ describe('PostService', () => {
           user: ownerId,
           status: PostStatus.PUBLISHED,
         },
+        expect.any(Object)
+      );
+    });
+
+    it('should search posts by title for specific user', async () => {
+      // Arrange
+      const searchQuery = 'tutorial';
+      const posts = [
+        createPublishedPostFixture({ title: 'NestJS Tutorial for Beginners' }),
+      ];
+      userRepository.count.mockResolvedValue(1); // User exists
+      postRepository.findAndCount.mockResolvedValue([posts, 1]);
+
+      // Act
+      await service.getPostsByUserId(ownerId, viewerId, UserRole.USER, {
+        offset: 0,
+        limit: 10,
+        search: searchQuery,
+      });
+
+      // Assert
+      expect(postRepository.findAndCount).toHaveBeenCalledWith(
+        expect.objectContaining({
+          user: ownerId,
+          status: PostStatus.PUBLISHED,
+          title: { $ilike: `%${searchQuery}%` },
+        }),
         expect.any(Object)
       );
     });
@@ -288,11 +380,7 @@ describe('PostService', () => {
       postRepository.findOne.mockResolvedValue(post);
 
       // Act
-      const result = await service.getPostById(
-        'post-123',
-        currentUserId,
-        UserRole.ADMIN
-      );
+      const result = await service.getPostById('post-123', currentUserId);
 
       // Assert
       expect(result).toEqual(post);
@@ -311,11 +399,7 @@ describe('PostService', () => {
       postRepository.findOne.mockResolvedValue(post);
 
       // Act
-      const result = await service.getPostById(
-        'post-123',
-        currentUserId,
-        UserRole.ADMIN
-      );
+      const result = await service.getPostById('post-123', currentUserId);
 
       // Assert
       expect(result).toEqual(post);
@@ -329,9 +413,9 @@ describe('PostService', () => {
       });
       postRepository.findOne.mockResolvedValue(post);
 
-      // Act & Assert - regular user should not see other user's draft
+      // Act & Assert - non-owner should not see other user's draft
       await expect(
-        service.getPostById('post-123', currentUserId, UserRole.USER)
+        service.getPostById('post-123', currentUserId)
       ).rejects.toThrow(AuthorizationException);
     });
 
@@ -341,7 +425,7 @@ describe('PostService', () => {
 
       // Act & Assert
       await expect(
-        service.getPostById('non-existent', currentUserId, UserRole.ADMIN)
+        service.getPostById('non-existent', currentUserId)
       ).rejects.toThrow(ResourceNotFoundException);
     });
   });

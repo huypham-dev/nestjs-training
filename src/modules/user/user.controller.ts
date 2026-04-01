@@ -41,7 +41,6 @@ import type {
   updateCurrentUserDto,
   UpdateUserStatusDto,
   UserQueryDto,
-  UserResponse,
 } from './user.dto';
 
 // Decorators
@@ -109,7 +108,7 @@ export class UserController {
     });
 
     return {
-      data: result.data.map((user) => this.toUserResponse(user)),
+      data: result.data,
       ...(result.meta ? { meta: result.meta } : {}),
     };
   }
@@ -181,6 +180,45 @@ export class UserController {
     };
   }
 
+  // Get user by ID
+  @Get(':id')
+  @HttpCode(HttpStatus.OK)
+  @UseInterceptors(CacheInterceptor)
+  @CacheTTL(60000) // 60 seconds
+  @ApiDocumentation({
+    operation: {
+      summary: 'Get user by ID',
+      description:
+        'Retrieve a user profile by their UUID. Accessible to all authenticated users.',
+    },
+    params: [
+      {
+        name: 'id',
+        type: 'string',
+        format: 'uuid',
+        description: 'User UUID',
+        example: '550e8400-e29b-41d4-a716-446655440000',
+      },
+    ],
+    response: {
+      status: 200,
+      description: 'Successfully retrieved user profile',
+      schema: {
+        type: 'object',
+        properties: {
+          data: { $ref: '#/components/schemas/UserResponse' },
+        },
+      },
+    },
+  })
+  async getUserById(@Param('id', ParseUUIDPipe) userId: string) {
+    const user = await this.userService.getUserById(userId);
+
+    return {
+      data: user,
+    };
+  }
+
   @Patch(':id/status')
   @HttpCode(HttpStatus.OK)
   @UseGuards(PreventSameUserActionGuard)
@@ -232,19 +270,6 @@ export class UserController {
 
     return {
       data: updatedUser,
-    };
-  }
-
-  private toUserResponse(user: User): UserResponse {
-    return {
-      id: user.id,
-      authId: user.authId,
-      fullName: user.fullName,
-      email: user.email,
-      role: user.role,
-      status: user.status,
-      createdAt: user.createdAt.toISOString(),
-      updatedAt: user.updatedAt.toISOString(),
     };
   }
 }

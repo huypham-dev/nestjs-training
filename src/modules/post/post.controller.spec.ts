@@ -3,7 +3,7 @@ import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { PostController } from './post.controller';
 import { PostService } from './post.service';
 import { CacheService } from '@/common/services';
-import { PostOwnerOrAdminGuard } from './post.guards';
+import { PostOwnerGuard, PostOwnerOrAdminGuard } from './post.guards';
 import { PostStatus } from '@/constants';
 import {
   createPostFixture,
@@ -60,6 +60,8 @@ describe('PostController', () => {
         },
       ],
     })
+      .overrideGuard(PostOwnerGuard)
+      .useValue(mockGuard)
       .overrideGuard(PostOwnerOrAdminGuard)
       .useValue(mockGuard)
       .compile();
@@ -237,8 +239,7 @@ describe('PostController', () => {
       expect(result.data.status).toBe(PostStatus.PUBLISHED);
       expect(postService.getPostById).toHaveBeenCalledWith(
         'post-123',
-        currentUser.id,
-        currentUser.role
+        currentUser.id
       );
     });
 
@@ -327,11 +328,7 @@ describe('PostController', () => {
       await controller.deletePost(postId, user);
 
       // Assert
-      expect(postService.getPostById).toHaveBeenCalledWith(
-        postId,
-        user.id,
-        user.role
-      );
+      expect(postService.getPostById).toHaveBeenCalledWith(postId, user.id);
       expect(postService.deletePost).toHaveBeenCalledWith(postId);
     });
   });

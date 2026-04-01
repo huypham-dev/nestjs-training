@@ -30,10 +30,24 @@ export const postQuerySchema = z
       description: 'Filter posts by status',
       example: PostStatus.PUBLISHED,
     }),
+    search: z
+      .string()
+      .trim()
+      .min(1, 'Search query must not be empty')
+      .optional()
+      .openapi({
+        description: 'Search posts by title (case-insensitive partial match)',
+        example: 'nestjs',
+      }),
   })
   .openapi({
     description: 'Query parameters for listing posts',
-    example: { offset: '0', limit: '10', status: 'published' },
+    example: {
+      offset: '0',
+      limit: '10',
+      status: 'published',
+      search: 'nestjs',
+    },
   });
 
 export const createPostSchema = z
