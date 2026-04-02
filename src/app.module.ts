@@ -1,6 +1,11 @@
 // Dependencies
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import {
+  MiddlewareConsumer,
+  Module,
+  NestModule,
+  RequestMethod,
+} from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { PostgreSqlDriver } from '@mikro-orm/postgresql';
@@ -12,6 +17,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { UserModule } from '@/modules/user';
 import { CategoryModule } from '@/modules/category';
 import { PostModule } from '@/modules/post';
+import { WebhookModule } from '@/modules/webhook';
 
 // Interceptors
 import { LoggingInterceptor } from '@/common/interceptors';
@@ -68,6 +74,7 @@ import { ActiveUserGuard, RolesGuard } from './common/guards';
     UserModule,
     CategoryModule,
     PostModule,
+    WebhookModule,
   ],
   providers: [
     CacheService,
@@ -107,6 +114,10 @@ export class AppModule implements NestModule {
         }),
         ClerkAuthMiddleware,
         SyncUserMiddleware
+      )
+      .exclude(
+        { path: 'webhooks/clerk', method: RequestMethod.POST },
+        { path: 'webhooks/(.*)', method: RequestMethod.ALL }
       )
       .forRoutes('*');
   }

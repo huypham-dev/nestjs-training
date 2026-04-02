@@ -1,5 +1,6 @@
 // Dependencies
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 
 // Constants
@@ -11,13 +12,27 @@ import {
   InactiveUserException,
 } from '@/common/exceptions';
 
+// Decorators
+import { IS_PUBLIC_KEY } from '@/common/decorators/public.decorator';
+
 /**
  * Guard: Check if user account is active
  * Ensures only active users can access protected routes
  */
 @Injectable()
 export class ActiveUserGuard implements CanActivate {
+  constructor(private readonly reflector: Reflector) {}
+
   canActivate(context: ExecutionContext): boolean {
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+
+    if (isPublic) {
+      return true;
+    }
+
     const request = context.switchToHttp().getRequest<Request>();
     const user = request.user;
 

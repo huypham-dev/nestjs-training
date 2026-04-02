@@ -227,7 +227,7 @@ export class UserController {
     operation: {
       summary: 'Update user status (Admin only)',
       description:
-        'Update the status of a user account (ACTIVE/INACTIVE). Only accessible by administrators. Cannot update own status.',
+        'Update the status of a user account (ACTIVE/INACTIVE). Setting status to INACTIVE will lock the user on Clerk (prevents login). Setting status to ACTIVE will unlock the user on Clerk (allows login). Only accessible by administrators. Cannot update own status.',
     },
     params: [
       {

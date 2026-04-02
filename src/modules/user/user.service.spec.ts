@@ -6,6 +6,7 @@ import { UserService } from './user.service';
 import { User } from './user.entity';
 import { UserStatus } from '@/constants/users';
 import { ResourceNotFoundException } from '@/common/exceptions';
+import { ClerkService } from '@/common/services';
 
 import {
   createMockRepository,
@@ -21,11 +22,18 @@ describe('UserService', () => {
   let service: UserService;
   let userRepository: ReturnType<typeof createMockRepository>;
   let entityManager: ReturnType<typeof createMockEntityManager>;
+  let clerkService: jest.Mocked<ClerkService>;
 
   beforeEach(async () => {
     // Create mock instances
     userRepository = createMockRepository();
     entityManager = createMockEntityManager();
+
+    // Mock ClerkService
+    const mockClerkService = {
+      lockUser: jest.fn().mockResolvedValue(undefined),
+      unlockUser: jest.fn().mockResolvedValue(undefined),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -38,10 +46,15 @@ describe('UserService', () => {
           provide: EntityManager,
           useValue: entityManager,
         },
+        {
+          provide: ClerkService,
+          useValue: mockClerkService,
+        },
       ],
     }).compile();
 
     service = module.get<UserService>(UserService);
+    clerkService = module.get(ClerkService);
   });
 
   afterEach(() => {
@@ -198,6 +211,7 @@ describe('UserService', () => {
       // Assert
       expect(result.status).toBe(UserStatus.INACTIVE);
       expect(entityManager.flush).toHaveBeenCalled();
+      expect(clerkService.lockUser).toHaveBeenCalledWith(user.authId);
     });
 
     it('should update user status to ACTIVE', async () => {
@@ -215,6 +229,7 @@ describe('UserService', () => {
       // Assert
       expect(result.status).toBe(UserStatus.ACTIVE);
       expect(entityManager.flush).toHaveBeenCalled();
+      expect(clerkService.unlockUser).toHaveBeenCalledWith(user.authId);
     });
 
     it('should throw ResourceNotFoundException when user not found', async () => {
@@ -225,6 +240,44 @@ describe('UserService', () => {
       await expect(
         service.updateUserStatus('non-existent', UserStatus.INACTIVE)
       ).rejects.toThrow(ResourceNotFoundException);
+    });
+
+    it('should rollback database change if Clerk lock operation fails', async () => {
+      // Arrange
+      const user = createUserFixture({ status: UserStatus.ACTIVE });
+      userRepository.findOne.mockResolvedValue(user);
+      entityManager.flush.mockResolvedValue(undefined);
+      clerkService.lockUser.mockRejectedValue(
+        new Error('Failed to lock user on Clerk')
+      );
+
+      // Act & Assert
+      await expect(
+        service.updateUserStatus('user-123', UserStatus.INACTIVE)
+      ).rejects.toThrow('Failed to lock user on Clerk');
+
+      // Verify rollback
+      expect(user.status).toBe(UserStatus.ACTIVE);
+      expect(entityManager.flush).toHaveBeenCalledTimes(2); // Once for update, once for rollback
+    });
+
+    it('should rollback database change if Clerk unlock operation fails', async () => {
+      // Arrange
+      const user = createInactiveUserFixture();
+      userRepository.findOne.mockResolvedValue(user);
+      entityManager.flush.mockResolvedValue(undefined);
+      clerkService.unlockUser.mockRejectedValue(
+        new Error('Failed to unlock user on Clerk')
+      );
+
+      // Act & Assert
+      await expect(
+        service.updateUserStatus('user-123', UserStatus.ACTIVE)
+      ).rejects.toThrow('Failed to unlock user on Clerk');
+
+      // Verify rollback
+      expect(user.status).toBe(UserStatus.INACTIVE);
+      expect(entityManager.flush).toHaveBeenCalledTimes(2); // Once for update, once for rollback
     });
   });
 

@@ -6,6 +6,9 @@ import { Injectable } from '@nestjs/common';
 // Entities
 import { User } from './user.entity';
 
+// Services
+import { ClerkService } from '@/common/services';
+
 // Exceptions
 import { ResourceNotFoundException } from '@/common/exceptions';
 
@@ -18,7 +21,8 @@ export class UserService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: EntityRepository<User>,
-    private readonly em: EntityManager
+    private readonly em: EntityManager,
+    private readonly clerkService: ClerkService
   ) {}
 
   async getAllUsers(
@@ -77,6 +81,40 @@ export class UserService {
 
   // Update user status by their internal system ID
   async updateUserStatus(id: string, status: UserStatus): Promise<User> {
+    const user = await this.getUserById(id);
+
+    const previousStatus = user.status;
+    user.status = status;
+
+    await this.em.flush();
+
+    // Lock/Unlock user on Clerk based on status
+    try {
+      if (status === UserStatus.INACTIVE) {
+        await this.clerkService.lockUser(user.authId);
+      } else if (status === UserStatus.ACTIVE) {
+        await this.clerkService.unlockUser(user.authId);
+      }
+    } catch (error) {
+      // Rollback database change if Clerk operation fails
+      user.status = previousStatus;
+      await this.em.flush();
+      throw error;
+    }
+
+    return user;
+  }
+
+  // Get user by their Clerk authentication ID
+  async getUserByAuthId(authId: string): Promise<User | null> {
+    return this.userRepository.findOne({ authId });
+  }
+
+  // Update user status from webhook (without calling Clerk API)
+  async updateUserStatusFromWebhook(
+    id: string,
+    status: UserStatus
+  ): Promise<User> {
     const user = await this.getUserById(id);
 
     user.status = status;

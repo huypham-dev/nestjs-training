@@ -12,6 +12,9 @@ import {
 // Constants
 import { UserRole } from '@/constants/users';
 
+// Decorators
+import { IS_PUBLIC_KEY } from '@/common/decorators/public.decorator';
+
 const ROLES_KEY = 'roles';
 
 /**
@@ -23,6 +26,15 @@ export class RolesGuard implements CanActivate {
   constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
+    const isPublic = this.reflector.getAllAndOverride<boolean>(IS_PUBLIC_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+
+    if (isPublic) {
+      return true;
+    }
+
     const roles = this.reflector.getAllAndOverride<UserRole[]>(ROLES_KEY, [
       context.getHandler(),
       context.getClass(),
