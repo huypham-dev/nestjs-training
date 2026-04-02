@@ -6,6 +6,7 @@ import {
   OpenAPIRegistry,
   OpenApiGeneratorV3,
 } from '@asteasolutions/zod-to-openapi';
+import { json, urlencoded } from 'express';
 
 // Modules
 import { AppModule } from './app.module';
@@ -27,7 +28,14 @@ import {
 import { categorySchema } from './modules/category/category.dto';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create(AppModule, {
+    bodyParser: true,
+    rawBody: true,
+  });
+
+  // Increase body size limit for file uploads (10MB)
+  app.use(json({ limit: '10mb' }));
+  app.use(urlencoded({ limit: '10mb', extended: true }));
 
   // Enables CORS with default settings
   app.enableCors();

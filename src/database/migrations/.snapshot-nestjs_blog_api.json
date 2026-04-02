@@ -188,14 +188,6 @@
           "unique": false
         },
         {
-          "keyName": "users_email_index",
-          "columnNames": ["email"],
-          "composite": false,
-          "constraint": false,
-          "primary": false,
-          "unique": false
-        },
-        {
           "keyName": "users_pkey",
           "columnNames": ["id"],
           "composite": false,
@@ -269,6 +261,26 @@
           "enumItems": ["draft", "published"],
           "mappedType": "enum"
         },
+        "image_url": {
+          "name": "image_url",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 255,
+          "mappedType": "string"
+        },
+        "image_thumbnail_url": {
+          "name": "image_thumbnail_url",
+          "type": "varchar(255)",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 255,
+          "mappedType": "string"
+        },
         "user_id": {
           "name": "user_id",
           "type": "uuid",
@@ -282,14 +294,6 @@
       "name": "posts",
       "schema": "public",
       "indexes": [
-        {
-          "keyName": "posts_title_index",
-          "columnNames": ["title"],
-          "composite": false,
-          "constraint": false,
-          "primary": false,
-          "unique": false
-        },
         {
           "keyName": "posts_status_created_at_index",
           "columnNames": ["status", "created_at"],

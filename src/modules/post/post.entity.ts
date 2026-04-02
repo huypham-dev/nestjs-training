@@ -33,6 +33,16 @@ export class Post extends BaseEntity {
   @Enum({ items: () => PostStatus, fieldName: 'status' })
   status: PostStatus & Opt = PostStatus.DRAFT;
 
+  @Property({ type: 'string', fieldName: 'image_url', nullable: true })
+  imageUrl?: string | null;
+
+  @Property({
+    type: 'string',
+    fieldName: 'image_thumbnail_url',
+    nullable: true,
+  })
+  imageThumbnailUrl?: string | null;
+
   @ManyToOne(() => User, {
     fieldName: 'user_id',
     nullable: false,

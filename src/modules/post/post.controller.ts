@@ -12,8 +12,14 @@ import {
   Patch,
   UseGuards,
   ParseUUIDPipe,
+  UseInterceptors,
+  UploadedFile,
+  ParseFilePipe,
+  MaxFileSizeValidator,
+  FileTypeValidator,
 } from '@nestjs/common';
-import { ApiTags, ApiSecurity } from '@nestjs/swagger';
+import { ApiTags, ApiSecurity, ApiConsumes } from '@nestjs/swagger';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 // Common decorators
 import { ApiDocumentation } from '@/common/decorators';
@@ -22,15 +28,13 @@ import { ApiDocumentation } from '@/common/decorators';
 import { PostService } from './post.service';
 import { CacheService } from '@/common/services';
 
-// Constants
-
 // DTOs
 import {
   postQuerySchema,
   createPostSchema,
   updatePostSchema,
 } from './post.dto';
-import type { PostQueryDto, CreatePostDto, UpdatePostDto } from './post.dto';
+import type { CreatePostDto, PostQueryDto, UpdatePostDto } from './post.dto';
 
 // Pipes
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
@@ -50,6 +54,14 @@ import { User } from '@/modules/user/user.entity';
 
 // Types
 import type { PostResponse } from './post.dto';
+
+const IMAGE_FILE_PIPE = new ParseFilePipe({
+  validators: [
+    new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }), // 5MB
+    new FileTypeValidator({ fileType: '.(jpg|jpeg|png|webp)$' }),
+  ],
+  fileIsRequired: false,
+});
 
 @ApiTags('Posts')
 @ApiSecurity('clerk-auth')
@@ -114,28 +126,28 @@ export class PostController {
       user.role
     );
 
-    return {
-      data: result.data.map((post) => this.toPostResponse(post)),
-      ...(result.meta ? { meta: result.meta } : {}),
-    };
+    return this.formatPaginatedResponse(result);
   }
 
   /**
    * POST /posts
    * Create a new post (as DRAFT by default)
    * Requires authentication
+   * Supports image upload
    */
   @Post('posts')
   @HttpCode(HttpStatus.CREATED)
+  @UseInterceptors(FileInterceptor('image'))
+  @ApiConsumes('multipart/form-data')
   @ApiDocumentation({
     operation: {
       summary: 'Create a new post',
       description:
-        'Create a new blog post with the status DRAFT by default. The post will be associated with the authenticated user as the author.',
+        'Create a new blog post with the status DRAFT by default. The post will be associated with the authenticated user as the author. Optionally upload an image (JPEG, PNG, or WebP, max 5MB).',
     },
     body: {
       schema: { $ref: '#/components/schemas/CreatePostRequest' },
-      description: 'Post creation data',
+      description: 'Post creation data with optional image upload',
     },
     response: {
       status: 201,
@@ -150,13 +162,18 @@ export class PostController {
   })
   async createPost(
     @CurrentUser() user: User,
-    @Body(new ZodValidationPipe(createPostSchema)) payload: CreatePostDto
+    @Body(new ZodValidationPipe(createPostSchema)) payload: CreatePostDto,
+    @UploadedFile(IMAGE_FILE_PIPE) image?: Express.Multer.File
   ) {
-    const post = await this.postService.createPost(user.id, {
-      title: payload.title,
-      content: payload.content,
-      categoryIds: payload.categoryIds,
-    });
+    const post = await this.postService.createPost(
+      user.id,
+      {
+        title: payload.title,
+        content: payload.content,
+        categoryIds: payload.categoryIds,
+      },
+      image
+    );
 
     // Invalidate post caches
     await this.cacheService.invalidatePostCaches(undefined, user.id);
@@ -217,15 +234,18 @@ export class PostController {
    * PATCH /posts/:id
    * Update a post by ID
    * - Only owner or admin can update (checked by guard)
+   * - Supports image upload/update
    */
   @Patch('posts/:id')
   @HttpCode(HttpStatus.OK)
   @UseGuards(PostOwnerGuard)
+  @UseInterceptors(FileInterceptor('image'))
+  @ApiConsumes('multipart/form-data')
   @ApiDocumentation({
     operation: {
       summary: 'Update post by ID',
       description:
-        'Update an existing post. Only the post owner can update posts. All fields are optional.',
+        'Update an existing post. Only the post owner can update posts. All fields are optional. Uploading a new image will replace the existing one.',
     },
     params: [
       {
@@ -253,14 +273,19 @@ export class PostController {
   })
   async updatePost(
     @Param('id', ParseUUIDPipe) postId: string,
-    @Body(new ZodValidationPipe(updatePostSchema)) payload: UpdatePostDto
+    @Body(new ZodValidationPipe(updatePostSchema)) payload: UpdatePostDto,
+    @UploadedFile(IMAGE_FILE_PIPE) image?: Express.Multer.File
   ) {
-    const post = await this.postService.updatePost(postId, {
-      title: payload.title,
-      content: payload.content,
-      categoryIds: payload.categoryIds,
-      status: payload.status,
-    });
+    const post = await this.postService.updatePost(
+      postId,
+      {
+        title: payload.title,
+        content: payload.content,
+        categoryIds: payload.categoryIds,
+        status: payload.status,
+      },
+      image
+    );
 
     // Invalidate post caches
     await this.cacheService.invalidatePostCaches(postId, post.user.id);
@@ -377,9 +402,23 @@ export class PostController {
       }
     );
 
+    return this.formatPaginatedResponse(result);
+  }
+
+  private parseCategoryIds(categoryIds: any): string[] | undefined {
+    if (!categoryIds) return undefined;
+    if (Array.isArray(categoryIds)) return categoryIds;
+    try {
+      return JSON.parse(categoryIds as string);
+    } catch {
+      return undefined;
+    }
+  }
+
+  private formatPaginatedResponse(result: { data: PostEntity[]; meta?: any }) {
     return {
       data: result.data.map((post) => this.toPostResponse(post)),
-      ...(result.meta ? { meta: result.meta } : {}),
+      ...(result.meta && { meta: result.meta }),
     };
   }
 
@@ -389,6 +428,8 @@ export class PostController {
       title: post.title,
       content: post.content,
       status: post.status,
+      imageUrl: post.imageUrl,
+      imageThumbnailUrl: post.imageThumbnailUrl,
       author: {
         id: post.user.id,
         email: post.user.email,

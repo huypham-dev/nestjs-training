@@ -66,10 +66,18 @@ export const createPostSchema = z
       example:
         'NestJS is a progressive Node.js framework for building efficient and scalable server-side applications.',
     }),
-    categoryIds: z.array(z.uuid('Invalid category ID')).openapi({
-      description: 'Array of category UUIDs to associate with the post',
-      example: ['550e8400-e29b-41d4-a716-446655440000'],
-    }),
+    categoryIds: z
+      .preprocess(
+        (value) => {
+          if (!value) return [];
+          return Array.isArray(value) ? value : [value];
+        },
+        z.array(z.uuid('Invalid category ID'))
+      )
+      .openapi({
+        description: 'Array of category UUIDs to associate with the post',
+        example: ['550e8400-e29b-41d4-a716-446655440000'],
+      }),
   })
   .openapi('CreatePostRequest', {
     description: 'Schema for creating a new blog post',
@@ -97,8 +105,13 @@ export const updatePostSchema = z
         example: 'In this post, we explore advanced NestJS patterns...',
       }),
     categoryIds: z
-      .array(z.uuid('Invalid category ID'))
-      .optional()
+      .preprocess(
+        (value) => {
+          if (!value) return [];
+          return Array.isArray(value) ? value : [value];
+        },
+        z.array(z.uuid('Invalid category ID'))
+      )
       .openapi({
         description: 'Updated array of category UUIDs',
         example: ['550e8400-e29b-41d4-a716-446655440000'],
@@ -129,6 +142,16 @@ export const postSchema = z
     status: z.enum(PostStatus).openapi({
       description: 'Post publication status',
       example: PostStatus.PUBLISHED,
+    }),
+    imageUrl: z.url().nullable().optional().openapi({
+      description: 'URL of the original post image',
+      example:
+        'https://bucket.s3.region.amazonaws.com/posts/images/original/uuid.jpg',
+    }),
+    imageThumbnailUrl: z.url().nullable().optional().openapi({
+      description: 'URL of the post thumbnail image',
+      example:
+        'https://bucket.s3.region.amazonaws.com/posts/images/thumbnails/uuid.jpg',
     }),
     categories: z.array(categorySchema).openapi({
       description: 'Categories associated with the post',

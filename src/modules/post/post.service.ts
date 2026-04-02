@@ -1,6 +1,6 @@
 // Dependencies
 import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
+import { InjectRepository, logger } from '@mikro-orm/nestjs';
 import { EntityManager, EntityRepository, FilterQuery } from '@mikro-orm/core';
 
 // Entities
@@ -21,6 +21,12 @@ import {
 import { SuccessResponse } from '@/common/interfaces';
 import { PostQueryDto, UpdatePostDto } from './post.dto';
 
+// Services
+import { ImageProcessingService, StorageService } from '@/common/services';
+
+// Constants
+import { IMAGE_SETTINGS } from './post.constants';
+
 @Injectable()
 export class PostService {
   constructor(
@@ -30,7 +36,9 @@ export class PostService {
     private readonly categoryRepository: EntityRepository<Category>,
     @InjectRepository(User)
     private readonly userRepository: EntityRepository<User>,
-    private readonly em: EntityManager
+    private readonly em: EntityManager,
+    private readonly imageProcessingService: ImageProcessingService,
+    private readonly storageService: StorageService
   ) {}
 
   /**
@@ -144,21 +152,24 @@ export class PostService {
    */
   async createPost(
     userId: string,
-    data: { title: string; content: string; categoryIds: string[] }
+    data: { title: string; content: string; categoryIds: string[] },
+    imageFile?: Express.Multer.File
   ): Promise<Post> {
     // Validate categories exist
-    const categories = await this.categoryRepository.find({
-      id: { $in: data.categoryIds },
-    });
+    const categories = await this.getValidCategories(data.categoryIds);
 
-    if (categories.length !== data.categoryIds.length) {
-      const foundIds = categories.map((c) => c.id);
-      const missingIds = data.categoryIds.filter(
-        (id) => !foundIds.includes(id)
-      );
-      throw new ResourceNotFoundException(
-        `Categories not found: ${missingIds.join(', ')}`
-      );
+    // Process image if provided
+    let imageUrl: string | undefined;
+    let imageThumbnailUrl: string | undefined;
+
+    if (imageFile) {
+      try {
+        const imageUrls = await this.processAndUploadImage(imageFile);
+        imageUrl = imageUrls.imageUrl;
+        imageThumbnailUrl = imageUrls.imageThumbnailUrl;
+      } catch (error) {
+        throw new Error(`Failed to process image: ${error.message}`);
+      }
     }
 
     // Create post
@@ -166,6 +177,8 @@ export class PostService {
       title: data.title,
       content: data.content,
       user: userId,
+      imageUrl,
+      imageThumbnailUrl,
     });
 
     // Add categories (if any)
@@ -176,7 +189,7 @@ export class PostService {
     }
 
     // Persist to database
-    await this.em.persistAndFlush(post);
+    await this.em.persist(post).flush();
 
     // Load relations for response
     await this.em.populate(post, ['user', 'categories']);
@@ -215,7 +228,11 @@ export class PostService {
    *  Update a post by ID
    *  - Authorization checked by PostOwnerGuard
    */
-  async updatePost(postId: string, data: UpdatePostDto): Promise<Post> {
+  async updatePost(
+    postId: string,
+    data: UpdatePostDto,
+    imageFile?: Express.Multer.File
+  ): Promise<Post> {
     const post = await this.postRepository.findOne(
       { id: postId },
       { populate: ['user', 'categories'] }
@@ -223,6 +240,28 @@ export class PostService {
 
     if (!post) {
       throw new ResourceNotFoundException(`Post with ID '${postId}' not found`);
+    }
+
+    // Handle image update
+    if (imageFile) {
+      try {
+        // Delete old images if they exist
+        if (post.imageUrl || post.imageThumbnailUrl) {
+          await this.storageService.deleteImageByUrls(
+            post.imageUrl,
+            post.imageThumbnailUrl
+          );
+        }
+
+        // Process and upload new image
+        const imageUrls = await this.processAndUploadImage(imageFile);
+
+        post.imageUrl = imageUrls.imageUrl;
+        post.imageThumbnailUrl = imageUrls.imageThumbnailUrl;
+      } catch (error) {
+        console.error('❌ Image upload error:', error);
+        throw new Error(`Failed to update image: ${error.message}`);
+      }
     }
 
     // Update fields
@@ -239,19 +278,7 @@ export class PostService {
     // Update categories if provided
     if (data.categoryIds !== undefined) {
       // Validate categories exist
-      const categories = await this.categoryRepository.find({
-        id: { $in: data.categoryIds },
-      });
-
-      if (categories.length !== data.categoryIds.length) {
-        const foundIds = categories.map((c) => c.id);
-        const missingIds = data.categoryIds.filter(
-          (id) => !foundIds.includes(id)
-        );
-        throw new ResourceNotFoundException(
-          `Categories not found: ${missingIds.join(', ')}`
-        );
-      }
+      const categories = await this.getValidCategories(data.categoryIds);
 
       // Clear existing categories
       post.categories.removeAll();
@@ -282,6 +309,19 @@ export class PostService {
       throw new ResourceNotFoundException(`Post with ID '${postId}' not found`);
     }
 
+    // Delete images from S3 if they exist
+    try {
+      if (post.imageUrl || post.imageThumbnailUrl) {
+        await this.storageService.deleteImageByUrls(
+          post.imageUrl,
+          post.imageThumbnailUrl
+        );
+      }
+    } catch (error) {
+      // Log error but continue with post deletion
+      console.error('Failed to delete images from S3:', error);
+    }
+
     // Remove all categories from the post to avoid FK constraint error
     post.categories.removeAll();
     await this.em.flush();
@@ -289,6 +329,67 @@ export class PostService {
     // Delete the post
     this.em.remove(post);
     await this.em.flush();
+  }
+
+  /**
+   * Process and upload image
+   * Generates thumbnail and uploads both to S3
+   */
+  private async processAndUploadImage(
+    imageFile: Express.Multer.File
+  ): Promise<{ imageUrl: string; imageThumbnailUrl: string }> {
+    // Process original image
+    const processedOriginal = await this.imageProcessingService.processImage(
+      imageFile.buffer,
+      IMAGE_SETTINGS.JPEG_QUALITY
+    );
+
+    // Generate thumbnail
+    const thumbnail = await this.imageProcessingService.generateThumbnail(
+      imageFile.buffer,
+      {
+        width: IMAGE_SETTINGS.THUMBNAIL_WIDTH,
+        height: IMAGE_SETTINGS.THUMBNAIL_HEIGHT,
+        quality: IMAGE_SETTINGS.JPEG_QUALITY,
+      }
+    );
+
+    // Upload to S3
+    const uploadResult = await this.storageService.uploadImage(
+      processedOriginal.buffer,
+      thumbnail.buffer,
+      imageFile.originalname
+    );
+
+    logger.warn('Image uploaded to S3', uploadResult, {
+      originalUrl: uploadResult.original.url,
+      thumbnailUrl: uploadResult.thumbnail.url,
+    });
+
+    return {
+      imageUrl: uploadResult.original.url,
+      imageThumbnailUrl: uploadResult.thumbnail.url,
+    };
+  }
+
+  private async getValidCategories(
+    categoryIds?: string[]
+  ): Promise<Category[]> {
+    if (!categoryIds || categoryIds.length === 0) return [];
+
+    const categories = await this.categoryRepository.find({
+      id: { $in: categoryIds },
+    });
+
+    if (categories.length !== categoryIds.length) {
+      const foundIds = categories.map((c) => c.id);
+      const missingIds = categoryIds.filter((id) => !foundIds.includes(id));
+      throw new ResourceNotFoundException(
+        `Categories not found: ${missingIds.join(', ')}`
+      );
+    }
+
+    return categories;
   }
 
   /**
