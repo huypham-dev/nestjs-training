@@ -10,6 +10,7 @@ export const createUserFixture = (overrides?: Partial<User>): User => {
   user.authId = overrides?.authId ?? 'auth-123';
   user.email = overrides?.email ?? 'test@example.com';
   user.fullName = overrides?.fullName ?? 'Test User';
+  user.avatarUrl = overrides?.avatarUrl ?? undefined;
   user.role = overrides?.role ?? UserRole.USER;
   user.status = overrides?.status ?? UserStatus.ACTIVE;
   user.createdAt = overrides?.createdAt ?? new Date('2024-01-01');

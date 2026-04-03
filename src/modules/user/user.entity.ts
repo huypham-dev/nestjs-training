@@ -22,6 +22,9 @@ export class User extends BaseEntity {
   @Property({ type: 'string', fieldName: 'full_name' })
   fullName!: string;
 
+  @Property({ type: 'string', fieldName: 'avatar_url', nullable: true })
+  avatarUrl?: string;
+
   @Enum({ items: () => UserRole, fieldName: 'role' })
   role: UserRole & Opt = UserRole.USER;
 

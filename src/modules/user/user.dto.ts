@@ -44,6 +44,10 @@ export const updateCurrentUserSchema = z
       description: 'Updated email address',
       example: 'jane.doe@example.com',
     }),
+    avatarUrl: z.url('Invalid URL format').trim().optional().openapi({
+      description: 'Updated avatar URL',
+      example: 'https://example.com/avatar.jpg',
+    }),
   })
   .openapi('UpdateCurrentUserRequest', {
     description: 'Schema for updating current user profile',
@@ -77,6 +81,10 @@ export const userSchema = z
     fullName: z.string().openapi({
       description: 'User full name',
       example: 'John Doe',
+    }),
+    avatarUrl: z.string().url().nullable().openapi({
+      description: 'User avatar URL',
+      example: 'https://img.clerk.com/avatar.jpg',
     }),
     role: z.enum(UserRole).openapi({
       description: 'User role',

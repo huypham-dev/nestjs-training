@@ -324,6 +324,7 @@ describe('UserService', () => {
         authId: 'new-auth-123',
         email: 'new@example.com',
         fullName: 'New User',
+        avatarUrl: null,
       });
       expect(entityManager.flush).toHaveBeenCalled();
     });
@@ -347,6 +348,7 @@ describe('UserService', () => {
         authId: 'new-auth-123',
         email: '',
         fullName: '',
+        avatarUrl: null,
       });
       expect(entityManager.flush).toHaveBeenCalled();
     });

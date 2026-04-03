@@ -24,7 +24,7 @@ export class AuthMiddleware implements NestMiddleware {
       throw new AuthenticationException();
     }
 
-    const { email, fullName } = auth.sessionClaims || {};
+    const { email, fullName, avatarUrl } = auth.sessionClaims || {};
 
     // Attach auth info to request
     req.auth = {
@@ -38,7 +38,8 @@ export class AuthMiddleware implements NestMiddleware {
       const user = await this.userService.syncUser(
         auth.userId,
         email as string,
-        fullName as string
+        fullName as string,
+        avatarUrl as string
       );
 
       req.user = user;

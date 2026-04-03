@@ -68,7 +68,7 @@ export class WebhookService {
         return;
       }
 
-      const { id: authId, locked } = event.data;
+      const { id: authId, locked, image_url } = event.data;
 
       if (!authId || typeof authId !== 'string') {
         this.logger.warn('User updated event missing authId');
@@ -76,7 +76,7 @@ export class WebhookService {
       }
 
       this.logger.log(
-        `Processing user.updated for authId: ${authId}, locked: ${locked}`
+        `Processing user.updated for authId: ${authId}, locked: ${locked}, avatarUrl: ${image_url}`
       );
 
       // Find user by authId
@@ -87,21 +87,31 @@ export class WebhookService {
         return;
       }
 
+      // Prepare updates
+      const updates: Partial<{ status: UserStatus; avatarUrl: string }> = {};
+
       // Determine the new status based on locked field
       const newStatus: UserStatus = locked
         ? UserStatus.INACTIVE
         : UserStatus.ACTIVE;
 
-      // Update user status if it has changed
       if (String(user.status) !== String(newStatus)) {
-        await this.userService.updateUserStatusFromWebhook(user.id, newStatus);
+        updates.status = newStatus;
+      }
+
+      // Update avatarUrl if it has changed
+      if (image_url && user.avatarUrl !== image_url) {
+        updates.avatarUrl = image_url;
+      }
+
+      // Only update if there are changes
+      if (Object.keys(updates).length > 0) {
+        await this.userService.updateUserFromWebhook(user.id, updates);
         this.logger.log(
-          `Successfully updated user ${user.id} status to ${newStatus}`
+          `Successfully updated user ${user.id}: ${JSON.stringify(updates)}`
         );
       } else {
-        this.logger.log(
-          `User ${user.id} status already ${newStatus}, no update needed`
-        );
+        this.logger.log(`User ${user.id} data unchanged, no update needed`);
       }
     } catch (error) {
       this.logger.error('Error handling user.updated event:', error);

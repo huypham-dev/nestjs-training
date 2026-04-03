@@ -111,14 +111,14 @@ export class UserService {
     return this.userRepository.findOne({ authId });
   }
 
-  // Update user status from webhook (without calling Clerk API)
-  async updateUserStatusFromWebhook(
+  // Generic method to update user fields from webhook (without calling Clerk API)
+  async updateUserFromWebhook(
     id: string,
-    status: UserStatus
+    updates: Partial<Pick<User, 'status' | 'avatarUrl'>>
   ): Promise<User> {
     const user = await this.getUserById(id);
 
-    user.status = status;
+    Object.assign(user, updates);
 
     await this.em.flush();
 
@@ -129,7 +129,8 @@ export class UserService {
   async syncUser(
     authId: string,
     email?: string,
-    fullName?: string
+    fullName?: string,
+    avatarUrl?: string
   ): Promise<User> {
     let user = await this.userRepository.findOne({ authId });
 
@@ -138,6 +139,7 @@ export class UserService {
         authId,
         email: email ?? '',
         fullName: fullName ?? '',
+        avatarUrl: avatarUrl ?? null,
       });
 
       await this.em.flush();
