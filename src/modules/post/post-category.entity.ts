@@ -1,9 +1,9 @@
 // Dependencies
 import { Entity, ManyToOne, PrimaryKeyProp } from '@mikro-orm/core';
 
-// Entities
-import { Post } from '@/modules/post/post.entity';
+// Modules
 import { Category } from '@/modules/category/category.entity';
+import { Post } from '@/modules/post/post.entity';
 
 @Entity({ tableName: 'post_categories' })
 export class PostCategory {

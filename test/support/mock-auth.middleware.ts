@@ -3,11 +3,16 @@
  * Replaces Clerk middleware and injects test user data
  */
 
+// Dependencies
+import { EntityManager } from '@mikro-orm/core';
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
-import { MockAuthInterceptor } from './mock-auth.interceptor';
-import { EntityManager } from '@mikro-orm/core';
+
+// Modules
 import { User } from '@/modules/user/user.entity';
+
+// Interceptors
+import { MockAuthInterceptor } from './mock-auth.interceptor';
 
 @Injectable()
 export class MockAuthMiddleware implements NestMiddleware {

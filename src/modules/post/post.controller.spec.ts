@@ -1,16 +1,29 @@
-import { Test, TestingModule } from '@nestjs/testing';
+// Dependencies
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { PostController } from './post.controller';
-import { PostService } from './post.service';
+import { Test, TestingModule } from '@nestjs/testing';
+
+// Common
 import { CacheService } from '@/common/services';
+
+// Controllers
+import { PostController } from './post.controller';
+
+// Services
+import { PostService } from './post.service';
+
+// Guards
 import { PostOwnerGuard, PostOwnerOrAdminGuard } from './post.guards';
+
+// Constants
 import { PostStatus } from '@/constants';
+
+// Other
+import { createCategoryFixture } from '@/test/fixtures/category.fixture';
 import {
   createPostFixture,
   createPublishedPostFixture,
 } from '@/test/fixtures/post.fixture';
 import { createUserFixture } from '@/test/fixtures/user.fixture';
-import { createCategoryFixture } from '@/test/fixtures/category.fixture';
 
 describe('PostController', () => {
   let controller: PostController;

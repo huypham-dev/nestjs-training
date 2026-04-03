@@ -1,5 +1,8 @@
-import { Category } from '@/modules/category/category.entity';
+// Dependencies
 import { Collection } from '@mikro-orm/core';
+
+// Modules
+import { Category } from '@/modules/category/category.entity';
 import { Post } from '@/modules/post/post.entity';
 
 /**

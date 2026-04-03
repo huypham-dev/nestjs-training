@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/require-await */
+// Dependencies
 import { Migration } from '@mikro-orm/migrations';
 
 export class Migration20260403040953_AddAvatarUrlToUser extends Migration {

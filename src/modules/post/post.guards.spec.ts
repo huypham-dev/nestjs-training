@@ -1,15 +1,22 @@
+// Dependencies
 import { ExecutionContext } from '@nestjs/common';
-import { PostOwnerGuard, PostOwnerOrAdminGuard } from './post.guards';
+
+// Common
 import {
   AuthenticationException,
   AuthorizationException,
   ResourceNotFoundException,
 } from '@/common/exceptions';
+
+// Guards
+import { PostOwnerGuard, PostOwnerOrAdminGuard } from './post.guards';
+
+// Other
+import { createPostFixture } from '@/test/fixtures/post.fixture';
 import {
   createUserFixture,
   createAdminUserFixture,
 } from '@/test/fixtures/user.fixture';
-import { createPostFixture } from '@/test/fixtures/post.fixture';
 import { createMockRepository } from '@/test/mocks/repository.mock';
 
 describe('PostOwnerGuard', () => {

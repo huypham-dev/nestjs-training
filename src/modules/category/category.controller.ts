@@ -1,4 +1,5 @@
 // Dependencies
+import { CacheInterceptor, CacheKey, CacheTTL } from '@nestjs/cache-manager';
 import {
   Controller,
   Get,
@@ -7,21 +8,24 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { ApiTags, ApiSecurity } from '@nestjs/swagger';
-import { CacheInterceptor, CacheKey, CacheTTL } from '@nestjs/cache-manager';
 
-// Common decorators
+// Common
 import { ApiDocumentation } from '@/common/decorators';
+
+// Services
+import { CategoryService } from './category.service';
+
+// Entities
+import { Category } from './category.entity';
+
+// DTOs
+import { CategoryResponse } from './category.dto';
 
 // Constants
 import { CACHE_KEYS } from '@/constants';
 
-// Services
-import { CategoryService } from './category.service';
-import { Category } from './category.entity';
-import { CategoryResponse } from './category.dto';
-
 @ApiTags('Categories')
-@ApiSecurity('clerk-auth')
+@ApiSecurity('Auth')
 @Controller('categories')
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}

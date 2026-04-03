@@ -3,17 +3,15 @@ import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 
-// Exceptions
+// Common
+import { IS_PUBLIC_KEY } from '@/common/decorators/public.decorator';
 import {
   AuthenticationException,
   AuthorizationException,
 } from '@/common/exceptions';
 
 // Constants
-import { UserRole } from '@/constants/users';
-
-// Decorators
-import { IS_PUBLIC_KEY } from '@/common/decorators/public.decorator';
+import { UserRole } from '@/constants';
 
 const ROLES_KEY = 'roles';
 

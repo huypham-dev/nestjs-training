@@ -2,16 +2,25 @@
  * E2E Tests for Category API
  */
 
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
-import { CacheInterceptor } from '@nestjs/cache-manager';
+// Dependencies
 import { MikroORM } from '@mikro-orm/core';
+import { CacheInterceptor } from '@nestjs/cache-manager';
+import { INestApplication } from '@nestjs/common';
+import { Test, TestingModule } from '@nestjs/testing';
+
+// Modules
 import { TestAppModule } from '../support/test-app.module';
-import { NoOpCacheInterceptor } from '../support/noop-cache.interceptor';
-import { MockAuthInterceptor } from '../support/mock-auth.interceptor';
 import { Category } from '@/modules/category/category.entity';
 import { User } from '@/modules/user/user.entity';
-import { UserRole, UserStatus } from '@/constants/users';
+
+// Interceptors
+import { MockAuthInterceptor } from '../support/mock-auth.interceptor';
+import { NoOpCacheInterceptor } from '../support/noop-cache.interceptor';
+
+// Constants
+import { UserRole, UserStatus } from '@/constants';
+
+// Other
 import { TEST_USERS } from '../helpers/auth.helper';
 import { createSupertestApp } from '../helpers/test.helper';
 

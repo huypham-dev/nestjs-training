@@ -1,8 +1,15 @@
+// Dependencies
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
-import { WebhookController } from './webhook.controller';
-import { WebhookService } from './webhook.service';
+
+// Modules
 import { UserModule } from '../user/user.module';
+
+// Controllers
+import { WebhookController } from './webhook.controller';
+
+// Services
+import { WebhookService } from './webhook.service';
 
 @Module({
   imports: [ConfigModule, UserModule],

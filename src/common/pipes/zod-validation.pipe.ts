@@ -2,7 +2,7 @@
 import { Injectable, PipeTransform } from '@nestjs/common';
 import { z } from 'zod';
 
-// Exceptions
+// Other
 import { ValidationException } from '../exceptions';
 
 /**

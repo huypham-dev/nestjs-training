@@ -1,4 +1,5 @@
 // Dependencies
+import { UniqueConstraintViolationException } from '@mikro-orm/core';
 import {
   ExceptionFilter,
   Catch,
@@ -7,21 +8,18 @@ import {
   HttpStatus,
   Logger,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { Request, Response } from 'express';
-import { UniqueConstraintViolationException } from '@mikro-orm/core';
 
-// Exceptions
+// Common
 import {
   DomainException,
   DuplicateResourceException,
 } from '@/common/exceptions/base.exception';
-
-// Interfaces
 import { ErrorResponse } from '@/common/interfaces/response.interface';
 
 // Constants
 import { ErrorCodes, Environment } from '@/constants';
-import { ConfigService } from '@nestjs/config';
 
 /**
  * Global exception filter that catches all exceptions

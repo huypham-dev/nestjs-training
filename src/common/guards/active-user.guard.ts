@@ -3,17 +3,15 @@ import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 
-// Constants
-import { UserStatus } from '@/constants/users';
-
-// Exceptions
+// Common
+import { IS_PUBLIC_KEY } from '@/common/decorators/public.decorator';
 import {
   AuthenticationException,
   InactiveUserException,
 } from '@/common/exceptions';
 
-// Decorators
-import { IS_PUBLIC_KEY } from '@/common/decorators/public.decorator';
+// Constants
+import { UserStatus } from '@/constants';
 
 /**
  * Guard: Check if user account is active

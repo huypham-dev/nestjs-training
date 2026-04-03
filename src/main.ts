@@ -1,31 +1,29 @@
 // Dependencies
-import { NestFactory } from '@nestjs/core';
-import helmet from 'helmet';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import {
   OpenAPIRegistry,
   OpenApiGeneratorV3,
 } from '@asteasolutions/zod-to-openapi';
+import { NestFactory } from '@nestjs/core';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { json, urlencoded } from 'express';
+import helmet from 'helmet';
 
 // Modules
 import { AppModule } from './app.module';
-
-// Interceptors
-import { ResponseTransformInterceptor } from './common/interceptors/response-transform.interceptor';
-
-// Import Zod schemas to register them
-import {
-  userSchema,
-  updateCurrentUserSchema,
-  updateUserStatusSchema,
-} from './modules/user/user.dto';
+import { categorySchema } from './modules/category/category.dto';
 import {
   postSchema,
   createPostSchema,
   updatePostSchema,
 } from './modules/post/post.dto';
-import { categorySchema } from './modules/category/category.dto';
+import {
+  userSchema,
+  updateCurrentUserSchema,
+  updateUserStatusSchema,
+} from './modules/user/user.dto';
+
+// Interceptors
+import { ResponseTransformInterceptor } from './common/interceptors/response-transform.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -70,7 +68,7 @@ async function bootstrap() {
         description: 'Enter your Clerk JWT token',
         in: 'header',
       },
-      'clerk-auth'
+      'Auth'
     )
     .addTag('Users', 'User management endpoints')
     .addTag('Posts', 'Blog post management endpoints')

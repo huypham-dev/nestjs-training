@@ -2,18 +2,27 @@
  * E2E Tests for Post API
  */
 
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication } from '@nestjs/common';
-import { CacheInterceptor } from '@nestjs/cache-manager';
+// Dependencies
 import { MikroORM } from '@mikro-orm/core';
+import { CacheInterceptor } from '@nestjs/cache-manager';
+import { INestApplication } from '@nestjs/common';
+import { Test, TestingModule } from '@nestjs/testing';
+
+// Modules
 import { TestAppModule } from '../support/test-app.module';
-import { NoOpCacheInterceptor } from '../support/noop-cache.interceptor';
-import { MockAuthInterceptor } from '../support/mock-auth.interceptor';
-import { Post } from '@/modules/post/post.entity';
-import { PostCategory } from '@/modules/post/post-category.entity';
-import { User } from '@/modules/user/user.entity';
 import { Category } from '@/modules/category/category.entity';
+import { PostCategory } from '@/modules/post/post-category.entity';
+import { Post } from '@/modules/post/post.entity';
+import { User } from '@/modules/user/user.entity';
+
+// Interceptors
+import { MockAuthInterceptor } from '../support/mock-auth.interceptor';
+import { NoOpCacheInterceptor } from '../support/noop-cache.interceptor';
+
+// Constants
 import { UserRole, UserStatus, PostStatus } from '@/constants';
+
+// Other
 import { TEST_USERS } from '../helpers/auth.helper';
 import { createSupertestApp } from '../helpers/test.helper';
 

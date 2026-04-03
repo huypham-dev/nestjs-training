@@ -1,8 +1,13 @@
+// Dependencies
 import { EntityManager } from '@mikro-orm/core';
 import { Seeder } from '@mikro-orm/seeder';
+
+// Modules
+import { Category } from '@/modules/category/category.entity';
 import { Post } from '@/modules/post/post.entity';
 import { User } from '@/modules/user/user.entity';
-import { Category } from '@/modules/category/category.entity';
+
+// Constants
 import { PostStatus } from '@/constants';
 
 export class PostSeeder extends Seeder {

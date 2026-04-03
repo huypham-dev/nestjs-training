@@ -1,6 +1,9 @@
+// Dependencies
 import { Global, Module } from '@nestjs/common';
-import { StorageService } from './services/s3/storage.service';
+
+// Services
 import { ClerkService } from './services/clerk/clerk.service';
+import { StorageService } from './services/storage/s3.service';
 
 const providers = [StorageService, ClerkService];
 

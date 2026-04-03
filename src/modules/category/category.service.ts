@@ -1,7 +1,7 @@
 // Dependencies
-import { Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityRepository } from '@mikro-orm/core';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { Injectable } from '@nestjs/common';
 
 // Entities
 import { Category } from './category.entity';

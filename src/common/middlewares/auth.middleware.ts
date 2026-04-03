@@ -1,13 +1,13 @@
 // Dependencies
+import { getAuth } from '@clerk/express';
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { NextFunction, Request, Response } from 'express';
-import { getAuth } from '@clerk/express';
 
-// Services
-import { UserService } from '@/modules/user/user.service';
-
-// Exceptions
+// Common
 import { AuthenticationException } from '@/common/exceptions';
+
+// Modules
+import { UserService } from '@/modules/user/user.service';
 
 /**
  * Extract Clerk auth info, sync user with database, and attach to request

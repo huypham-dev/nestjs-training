@@ -7,10 +7,10 @@ import {
   Unique,
 } from '@mikro-orm/core';
 
-// Base Entity
+// Common
 import { BaseEntity } from '@/common/entities';
 
-// Entities
+// Modules
 import { Post } from '@/modules/post/post.entity';
 
 @Entity({ tableName: 'categories' })

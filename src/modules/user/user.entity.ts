@@ -1,11 +1,11 @@
 // Dependencies
 import { Entity, Enum, Opt, Property, Unique, Index } from '@mikro-orm/core';
 
-// Base Entity
+// Common
 import { BaseEntity } from '@/common/entities';
 
 // Constants
-import { UserRole, UserStatus } from '@/constants/users';
+import { UserRole, UserStatus } from '@/constants';
 
 @Entity({ tableName: 'users' })
 @Index({ properties: ['role', 'status'] }) // Compound index for filtering

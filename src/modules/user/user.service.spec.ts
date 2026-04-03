@@ -1,22 +1,31 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { getRepositoryToken } from '@mikro-orm/nestjs';
+// Dependencies
 import { EntityManager } from '@mikro-orm/core';
+import { getRepositoryToken } from '@mikro-orm/nestjs';
+import { Test, TestingModule } from '@nestjs/testing';
 
-import { UserService } from './user.service';
-import { User } from './user.entity';
-import { UserStatus } from '@/constants/users';
+// Common
 import { ResourceNotFoundException } from '@/common/exceptions';
+
+// Services
+import { UserService } from './user.service';
 import { ClerkService } from '@/shared/services';
 
-import {
-  createMockRepository,
-  createMockEntityManager,
-} from '@/test/mocks/repository.mock';
+// Entities
+import { User } from './user.entity';
+
+// Constants
+import { UserStatus } from '@/constants';
+
+// Other
 import {
   createUserFixture,
   createAdminUserFixture,
   createInactiveUserFixture,
 } from '@/test/fixtures/user.fixture';
+import {
+  createMockRepository,
+  createMockEntityManager,
+} from '@/test/mocks/repository.mock';
 
 describe('UserService', () => {
   let service: UserService;

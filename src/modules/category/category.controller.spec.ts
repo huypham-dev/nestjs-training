@@ -1,7 +1,14 @@
-import { Test, TestingModule } from '@nestjs/testing';
+// Dependencies
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
+import { Test, TestingModule } from '@nestjs/testing';
+
+// Controllers
 import { CategoryController } from './category.controller';
+
+// Services
 import { CategoryService } from './category.service';
+
+// Other
 import { createCategoryFixture } from '@/test/fixtures/category.fixture';
 
 describe('CategoryController', () => {

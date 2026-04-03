@@ -18,15 +18,27 @@ import {
   MaxFileSizeValidator,
   FileTypeValidator,
 } from '@nestjs/common';
-import { ApiTags, ApiSecurity, ApiConsumes } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
+import { ApiTags, ApiSecurity, ApiConsumes } from '@nestjs/swagger';
 
-// Common decorators
+// Common
 import { ApiDocumentation } from '@/common/decorators';
+import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
+import { CacheService } from '@/common/services';
+
+// Modules
+import {
+  PostOwnerGuard,
+  PostOwnerOrAdminGuard,
+} from '@/modules/post/post.guards';
+import { CurrentUser } from '@/modules/user/user.decorators';
+import { User } from '@/modules/user/user.entity';
 
 // Services
 import { PostService } from './post.service';
-import { CacheService } from '@/common/services';
+
+// Entities
+import { Post as PostEntity } from './post.entity';
 
 // DTOs
 import {
@@ -35,24 +47,6 @@ import {
   updatePostSchema,
 } from './post.dto';
 import type { CreatePostDto, PostQueryDto, UpdatePostDto } from './post.dto';
-
-// Pipes
-import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
-
-// Decorators
-import { CurrentUser } from '@/modules/user/user.decorators';
-
-// Guards
-import {
-  PostOwnerGuard,
-  PostOwnerOrAdminGuard,
-} from '@/modules/post/post.guards';
-
-// Entities
-import { Post as PostEntity } from './post.entity';
-import { User } from '@/modules/user/user.entity';
-
-// Types
 import type { PostResponse } from './post.dto';
 
 const IMAGE_FILE_PIPE = new ParseFilePipe({
@@ -64,7 +58,7 @@ const IMAGE_FILE_PIPE = new ParseFilePipe({
 });
 
 @ApiTags('Posts')
-@ApiSecurity('clerk-auth')
+@ApiSecurity('Auth')
 @Controller()
 export class PostController {
   constructor(

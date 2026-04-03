@@ -1,28 +1,39 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { getRepositoryToken } from '@mikro-orm/nestjs';
+// Dependencies
 import { EntityManager } from '@mikro-orm/core';
+import { getRepositoryToken } from '@mikro-orm/nestjs';
+import { Test, TestingModule } from '@nestjs/testing';
 
-import { PostService } from './post.service';
-import { Post } from './post.entity';
-import { Category } from '@/modules/category/category.entity';
-import { User } from '@/modules/user/user.entity';
-import { PostStatus, UserRole } from '@/constants';
+// Common
 import {
   AuthorizationException,
   ResourceNotFoundException,
 } from '@/common/exceptions';
-import { StorageService } from '@/shared/services/s3/storage.service';
 
-import {
-  createMockRepository,
-  createMockEntityManager,
-} from '@/test/mocks/repository.mock';
+// Modules
+import { Category } from '@/modules/category/category.entity';
+import { User } from '@/modules/user/user.entity';
+
+// Services
+import { PostService } from './post.service';
+import { StorageService } from '@/shared/services/storage/s3.service';
+
+// Entities
+import { Post } from './post.entity';
+
+// Constants
+import { PostStatus, UserRole } from '@/constants';
+
+// Other
+import { createCategoryFixture } from '@/test/fixtures/category.fixture';
 import {
   createPostFixture,
   createPublishedPostFixture,
 } from '@/test/fixtures/post.fixture';
-import { createCategoryFixture } from '@/test/fixtures/category.fixture';
 import { createUserFixture } from '@/test/fixtures/user.fixture';
+import {
+  createMockRepository,
+  createMockEntityManager,
+} from '@/test/mocks/repository.mock';
 
 describe('PostService', () => {
   let service: PostService;

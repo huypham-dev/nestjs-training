@@ -1,10 +1,12 @@
 // Dependencies
-import { z } from 'zod';
 import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
+import { z } from 'zod';
+
+// DTOs
+import { categorySchema } from '../category/category.dto';
 
 // Constants
 import { PostStatus } from '@/constants';
-import { categorySchema } from '../category/category.dto';
 
 // Extend Zod with OpenAPI
 extendZodWithOpenApi(z);

@@ -1,7 +1,7 @@
 // Dependencies
+import { createClerkClient } from '@clerk/backend';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { createClerkClient } from '@clerk/backend';
 
 @Injectable()
 export class ClerkService {

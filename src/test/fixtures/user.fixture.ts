@@ -1,4 +1,7 @@
+// Modules
 import { User } from '@/modules/user/user.entity';
+
+// Constants
 import { UserRole, UserStatus } from '@/constants';
 
 /**

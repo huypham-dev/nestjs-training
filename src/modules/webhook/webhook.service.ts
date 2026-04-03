@@ -1,9 +1,14 @@
+// Dependencies
+import { WebhookEvent } from '@clerk/backend';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Webhook } from 'svix';
-import { WebhookEvent } from '@clerk/backend';
+
+// Services
 import { UserService } from '../user/user.service';
-import { UserStatus } from '../../constants/users';
+
+// Constants
+import { UserStatus, CLERK_WEBHOOK_EVENTS } from '@/constants';
 
 @Injectable()
 export class WebhookService {
@@ -54,7 +59,7 @@ export class WebhookService {
 
   private async processEvent(event: WebhookEvent): Promise<void> {
     switch (event.type) {
-      case 'user.updated':
+      case CLERK_WEBHOOK_EVENTS.USER_UPDATED:
         await this.handleUserUpdated(event);
         break;
       default:
@@ -64,7 +69,7 @@ export class WebhookService {
 
   private async handleUserUpdated(event: WebhookEvent): Promise<void> {
     try {
-      if (event.type !== 'user.updated') {
+      if (event.type !== CLERK_WEBHOOK_EVENTS.USER_UPDATED) {
         return;
       }
 

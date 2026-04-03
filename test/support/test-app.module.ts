@@ -3,36 +3,33 @@
  * Bypasses Clerk authentication and uses mock middleware
  */
 
-import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
-import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+// Dependencies
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { PostgreSqlDriver } from '@mikro-orm/postgresql';
-import { ThrottlerModule } from '@nestjs/throttler';
 import { CacheModule } from '@nestjs/cache-manager';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { ThrottlerModule } from '@nestjs/throttler';
 
-// Modules
-import { UserModule } from '@/modules/user';
-import { CategoryModule } from '@/modules/category';
-import { PostModule } from '@/modules/post';
-
-// Interceptors
+// Common
+import { GlobalExceptionFilter } from '@/common/filters';
+import { RolesGuard } from '@/common/guards';
 import { LoggingInterceptor } from '@/common/interceptors';
 import { ResponseTransformInterceptor } from '@/common/interceptors/response-transform.interceptor';
+import { CacheService } from '@/common/services';
 
-// Filters
-import { GlobalExceptionFilter } from '@/common/filters';
-
-// Guards
-import { RolesGuard } from '@/common/guards';
+// Modules
+import { CategoryModule } from '@/modules/category';
+import { PostModule } from '@/modules/post';
+import { UserModule } from '@/modules/user';
 
 // Services
-import { CacheService } from '@/common/services';
 import { ClerkService } from '@/shared/services/clerk/clerk.service';
 
-// Config
-import { createDatabaseConfig } from '@/config';
+// Other
 import { MockAuthMiddleware } from './mock-auth.middleware';
+import { createDatabaseConfig } from '@/config';
 
 // Test Middleware
 

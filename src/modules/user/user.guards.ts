@@ -2,7 +2,7 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Request } from 'express';
 
-// Exceptions
+// Common
 import {
   AuthenticationException,
   OperationNotAllowedException,

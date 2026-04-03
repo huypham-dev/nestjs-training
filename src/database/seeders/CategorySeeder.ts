@@ -1,5 +1,8 @@
+// Dependencies
 import { EntityManager } from '@mikro-orm/core';
 import { Seeder } from '@mikro-orm/seeder';
+
+// Modules
 import { Category } from '@/modules/category/category.entity';
 
 export class CategorySeeder extends Seeder {

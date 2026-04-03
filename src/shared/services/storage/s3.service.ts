@@ -1,12 +1,12 @@
-import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
+// Dependencies
 import {
   S3Client,
   PutObjectCommand,
-  DeleteObjectCommand,
   DeleteObjectsCommand,
   PutObjectCommandInput,
 } from '@aws-sdk/client-s3';
+import { Injectable, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import sharp from 'sharp';
 
 export interface UploadResult {
@@ -143,24 +143,6 @@ export class StorageService {
   }
 
   /**
-   * Delete a file from S3 by key
-   */
-  async deleteFile(key: string): Promise<void> {
-    try {
-      const command = new DeleteObjectCommand({
-        Bucket: this.bucket,
-        Key: key,
-      });
-
-      await this.s3Client.send(command);
-      this.logger.log(`File deleted successfully: ${key}`);
-    } catch (error) {
-      this.logger.error(`Failed to delete file: ${error}`);
-      throw new Error('Failed to delete file from S3');
-    }
-  }
-
-  /**
    * Delete multiple files from S3
    */
   async deleteFiles(keys: string[]): Promise<void> {
@@ -280,31 +262,6 @@ export class StorageService {
     } catch (error) {
       this.logger.error('Error generating thumbnail:', error);
       throw new Error('Failed to generate thumbnail');
-    }
-  }
-
-  /**
-   * Validate image buffer
-   * Checks if the buffer is a valid image
-   */
-  async validateImage(buffer: Buffer): Promise<boolean> {
-    try {
-      await sharp(buffer).metadata();
-      return true;
-    } catch {
-      return false;
-    }
-  }
-
-  /**
-   * Get image metadata
-   */
-  async getMetadata(buffer: Buffer): Promise<sharp.Metadata> {
-    try {
-      return await sharp(buffer).metadata();
-    } catch (error) {
-      this.logger.error('Error getting image metadata:', error);
-      throw new Error('Failed to get image metadata');
     }
   }
 }

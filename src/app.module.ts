@@ -1,5 +1,8 @@
 // Dependencies
-import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { clerkMiddleware } from '@clerk/express';
+import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { PostgreSqlDriver } from '@mikro-orm/postgresql';
+import { CacheModule } from '@nestjs/cache-manager';
 import {
   MiddlewareConsumer,
   Module,
@@ -7,35 +10,27 @@ import {
   RequestMethod,
 } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { MikroOrmModule } from '@mikro-orm/nestjs';
-import { PostgreSqlDriver } from '@mikro-orm/postgresql';
-import { clerkMiddleware } from '@clerk/express';
+import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
-import { CacheModule } from '@nestjs/cache-manager';
 
-// Modules
-import { UserModule } from '@/modules/user';
-import { CategoryModule } from '@/modules/category';
-import { PostModule } from '@/modules/post';
-import { WebhookModule } from '@/modules/webhook';
-
-// Interceptors
-import { LoggingInterceptor } from '@/common/interceptors';
-
-// Filters
+// Common
 import { GlobalExceptionFilter } from '@/common/filters';
-
-// Services
+import { LoggingInterceptor } from '@/common/interceptors';
+import { AuthMiddleware } from '@/common/middlewares';
 import { CacheService } from '@/common/services';
 
+// Modules
+import { CategoryModule } from '@/modules/category';
+import { PostModule } from '@/modules/post';
+import { UserModule } from '@/modules/user';
+import { WebhookModule } from '@/modules/webhook';
 import { SharedModule } from '@/shared/shared.module';
 
-// Middlewares
-import { AuthMiddleware } from '@/common/middlewares';
-
-// Config
-import { createDatabaseConfig } from '@/config';
+// Guards
 import { ActiveUserGuard, RolesGuard } from './common/guards';
+
+// Other
+import { createDatabaseConfig } from '@/config';
 
 @Module({
   imports: [

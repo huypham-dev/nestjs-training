@@ -1,7 +1,14 @@
-import { Post } from '@/modules/post/post.entity';
-import { PostStatus } from '@/constants';
+// Dependencies
 import { Collection } from '@mikro-orm/core';
+
+// Modules
 import { Category } from '@/modules/category/category.entity';
+import { Post } from '@/modules/post/post.entity';
+
+// Constants
+import { PostStatus } from '@/constants';
+
+// Other
 import { createUserFixture } from './user.fixture';
 
 /**

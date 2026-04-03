@@ -1,18 +1,18 @@
 // Dependencies
-import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
-import { InjectRepository } from '@mikro-orm/nestjs';
 import { EntityRepository } from '@mikro-orm/core';
+import { InjectRepository } from '@mikro-orm/nestjs';
+import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Request } from 'express';
 
-// Entities
-import { Post } from './post.entity';
-
-// Exceptions
+// Common
 import {
   AuthenticationException,
   AuthorizationException,
   ResourceNotFoundException,
 } from '@/common/exceptions';
+
+// Entities
+import { Post } from './post.entity';
 
 /**
  * Guard: Check if user is post owner only

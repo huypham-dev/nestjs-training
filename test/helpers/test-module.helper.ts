@@ -3,8 +3,11 @@
  * Bypasses Clerk authentication middleware
  */
 
+// Dependencies
 import { DynamicModule } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
+
+// Modules
 import { AppModule } from '@/app.module';
 
 /**

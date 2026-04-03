@@ -3,8 +3,11 @@
  * Mocks Clerk authentication middleware
  */
 
+// Dependencies
 import { Request, Response, NextFunction } from 'express';
-import { UserRole, UserStatus } from '@/constants/users';
+
+// Constants
+import { UserRole, UserStatus } from '@/constants';
 
 export interface MockAuthUser {
   authId: string;

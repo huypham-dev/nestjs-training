@@ -1,5 +1,8 @@
+// Dependencies
 import { EntityManager } from '@mikro-orm/core';
 import { Seeder } from '@mikro-orm/seeder';
+
+// Other
 import { CategorySeeder } from './CategorySeeder';
 import { PostSeeder } from './PostSeeder';
 

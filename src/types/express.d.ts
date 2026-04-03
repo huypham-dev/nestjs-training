@@ -1,3 +1,4 @@
+// Modules
 import { User } from '@/modules/user/user.entity';
 
 declare global {

@@ -2,7 +2,7 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
 
 // Constants
-import { ErrorCodes } from '@/constants/error-codes';
+import { ErrorCodes } from '@/constants';
 
 /**
  * Base domain exception that all custom exceptions should extend

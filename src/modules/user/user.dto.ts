@@ -1,9 +1,9 @@
 // Dependencies
-import { z } from 'zod';
 import { extendZodWithOpenApi } from '@asteasolutions/zod-to-openapi';
+import { z } from 'zod';
 
 // Constants
-import { UserRole, UserStatus } from '@/constants/users';
+import { UserRole, UserStatus } from '@/constants';
 
 // Extend Zod with OpenAPI
 extendZodWithOpenApi(z);

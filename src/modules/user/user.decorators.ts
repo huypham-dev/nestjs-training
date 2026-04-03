@@ -1,10 +1,13 @@
-import { UserRole } from '@/constants/users';
+// Dependencies
 import {
   createParamDecorator,
   ExecutionContext,
   SetMetadata,
 } from '@nestjs/common';
 import { Request } from 'express';
+
+// Constants
+import { UserRole } from '@/constants';
 
 export const ROLES_KEY = 'roles';
 

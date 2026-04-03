@@ -1,20 +1,22 @@
 // Dependencies
-import { Module } from '@nestjs/common';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
+
+// Common
+import { CacheService } from '@/common/services';
 
 // Controllers
 import { UserController } from './user.controller';
 
 // Services
 import { UserService } from './user.service';
-import { CacheService } from '@/common/services';
 import { ClerkService } from '@/shared/services/clerk/clerk.service';
-
-// Entities
-import { User } from './user.entity';
 
 // Guards
 import { PreventSameUserActionGuard } from './user.guards';
+
+// Entities
+import { User } from './user.entity';
 
 @Module({
   imports: [MikroOrmModule.forFeature([User])],

@@ -1,9 +1,16 @@
+// Dependencies
 import { ExecutionContext } from '@nestjs/common';
-import { PreventSameUserActionGuard } from './user.guards';
+
+// Common
 import {
   AuthenticationException,
   OperationNotAllowedException,
 } from '@/common/exceptions';
+
+// Guards
+import { PreventSameUserActionGuard } from './user.guards';
+
+// Other
 import { createUserFixture } from '@/test/fixtures/user.fixture';
 
 describe('PreventSameUserActionGuard', () => {

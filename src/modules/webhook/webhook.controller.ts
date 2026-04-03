@@ -1,3 +1,4 @@
+// Dependencies
 import {
   Controller,
   Headers,
@@ -7,7 +8,11 @@ import {
   Post,
   Req,
 } from '@nestjs/common';
+
+// Common
 import { Public } from '@/common/decorators';
+
+// Services
 import { WebhookService } from './webhook.service';
 
 interface RequestWithRawBody extends Request {

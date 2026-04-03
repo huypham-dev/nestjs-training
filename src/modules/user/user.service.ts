@@ -3,18 +3,18 @@ import { EntityManager, EntityRepository } from '@mikro-orm/core';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
 
-// Entities
-import { User } from './user.entity';
+// Common
+import { ResourceNotFoundException } from '@/common/exceptions';
+import { SuccessResponse, QueryOptions } from '@/common/interfaces';
 
 // Services
 import { ClerkService } from '@/shared/services';
 
-// Exceptions
-import { ResourceNotFoundException } from '@/common/exceptions';
+// Entities
+import { User } from './user.entity';
 
 // Constants
-import { UserStatus } from '@/constants/users';
-import { SuccessResponse, QueryOptions } from '@/common/interfaces';
+import { UserStatus } from '@/constants';
 
 @Injectable()
 export class UserService {

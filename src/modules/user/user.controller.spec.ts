@@ -1,9 +1,20 @@
-import { Test, TestingModule } from '@nestjs/testing';
+// Dependencies
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { UserController } from './user.controller';
-import { UserService } from './user.service';
+import { Test, TestingModule } from '@nestjs/testing';
+
+// Common
 import { CacheService } from '@/common/services';
-import { UserStatus } from '@/constants/users';
+
+// Controllers
+import { UserController } from './user.controller';
+
+// Services
+import { UserService } from './user.service';
+
+// Constants
+import { UserStatus } from '@/constants';
+
+// Other
 import {
   createUserFixture,
   createAdminUserFixture,

@@ -1,13 +1,15 @@
 // Dependencies
-import { Module } from '@nestjs/common';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { Module } from '@nestjs/common';
+
+// Common
+import { CacheService } from '@/common/services';
 
 // Controllers
 import { CategoryController } from './category.controller';
 
 // Services
 import { CategoryService } from './category.service';
-import { CacheService } from '@/common/services';
 
 // Entities
 import { Category } from './category.entity';

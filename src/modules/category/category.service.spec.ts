@@ -1,11 +1,16 @@
-import { Test, TestingModule } from '@nestjs/testing';
+// Dependencies
 import { getRepositoryToken } from '@mikro-orm/nestjs';
+import { Test, TestingModule } from '@nestjs/testing';
 
+// Services
 import { CategoryService } from './category.service';
+
+// Entities
 import { Category } from './category.entity';
 
-import { createMockRepository } from '@/test/mocks/repository.mock';
+// Other
 import { createCategoryFixture } from '@/test/fixtures/category.fixture';
+import { createMockRepository } from '@/test/mocks/repository.mock';
 
 describe('CategoryService', () => {
   let service: CategoryService;

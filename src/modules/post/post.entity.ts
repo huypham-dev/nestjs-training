@@ -10,12 +10,12 @@ import {
   Index,
 } from '@mikro-orm/core';
 
-// Base Entity
+// Common
 import { BaseEntity } from '@/common/entities';
 
-// Entities
-import { User } from '@/modules/user/user.entity';
+// Modules
 import { Category } from '@/modules/category/category.entity';
+import { User } from '@/modules/user/user.entity';
 
 // Constants
 import { PostStatus } from '@/constants';

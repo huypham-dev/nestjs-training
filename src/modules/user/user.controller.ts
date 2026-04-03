@@ -1,4 +1,5 @@
 // Dependencies
+import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import {
   Body,
   Controller,
@@ -13,20 +14,17 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { ApiTags, ApiSecurity } from '@nestjs/swagger';
-import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 
-// Common decorators
+// Common
 import { ApiDocumentation } from '@/common/decorators';
-
-// Guards
-import { PreventSameUserActionGuard } from './user.guards';
-
-// Pipes
 import { ZodValidationPipe } from '@/common/pipes';
+import { CacheService } from '@/common/services';
 
 // Services
 import { UserService } from './user.service';
-import { CacheService } from '@/common/services';
+
+// Guards
+import { PreventSameUserActionGuard } from './user.guards';
 
 // Entities
 import { User } from './user.entity';
@@ -47,11 +45,11 @@ import type {
 import { CurrentUser, Roles } from './user.decorators';
 
 // Constants
-import { UserRole } from '@/constants/users';
+import { UserRole } from '@/constants';
 // import { CACHE_KEYS } from '@/constants';
 
 @ApiTags('Users')
-@ApiSecurity('clerk-auth')
+@ApiSecurity('Auth')
 @Controller('users')
 export class UserController {
   constructor(
