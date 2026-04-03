@@ -7,7 +7,7 @@ import { Injectable } from '@nestjs/common';
 import { User } from './user.entity';
 
 // Services
-import { ClerkService } from '@/common/services';
+import { ClerkService } from '@/shared/services';
 
 // Exceptions
 import { ResourceNotFoundException } from '@/common/exceptions';
@@ -86,8 +86,6 @@ export class UserService {
     const previousStatus = user.status;
     user.status = status;
 
-    await this.em.flush();
-
     // Lock/Unlock user on Clerk based on status
     try {
       if (status === UserStatus.INACTIVE) {
@@ -95,6 +93,9 @@ export class UserService {
       } else if (status === UserStatus.ACTIVE) {
         await this.clerkService.unlockUser(user.authId);
       }
+
+      // Flush database change after Clerk operation to ensure consistency
+      await this.em.flush();
     } catch (error) {
       // Rollback database change if Clerk operation fails
       user.status = previousStatus;

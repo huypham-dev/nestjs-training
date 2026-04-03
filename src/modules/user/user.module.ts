@@ -7,7 +7,8 @@ import { UserController } from './user.controller';
 
 // Services
 import { UserService } from './user.service';
-import { CacheService, ClerkService } from '@/common/services';
+import { CacheService } from '@/common/services';
+import { ClerkService } from '@/shared/services/clerk/clerk.service';
 
 // Entities
 import { User } from './user.entity';

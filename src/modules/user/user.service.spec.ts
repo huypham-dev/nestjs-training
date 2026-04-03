@@ -6,7 +6,7 @@ import { UserService } from './user.service';
 import { User } from './user.entity';
 import { UserStatus } from '@/constants/users';
 import { ResourceNotFoundException } from '@/common/exceptions';
-import { ClerkService } from '@/common/services';
+import { ClerkService } from '@/shared/services';
 
 import {
   createMockRepository,
@@ -258,7 +258,7 @@ describe('UserService', () => {
 
       // Verify rollback
       expect(user.status).toBe(UserStatus.ACTIVE);
-      expect(entityManager.flush).toHaveBeenCalledTimes(2); // Once for update, once for rollback
+      expect(entityManager.flush).toHaveBeenCalledTimes(1); // Once for rollback only
     });
 
     it('should rollback database change if Clerk unlock operation fails', async () => {
@@ -277,7 +277,7 @@ describe('UserService', () => {
 
       // Verify rollback
       expect(user.status).toBe(UserStatus.INACTIVE);
-      expect(entityManager.flush).toHaveBeenCalledTimes(2); // Once for update, once for rollback
+      expect(entityManager.flush).toHaveBeenCalledTimes(1); // Once for rollback only
     });
   });
 

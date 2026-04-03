@@ -117,6 +117,10 @@ export class PostSeeder extends Seeder {
         content,
         status,
         user,
+        imageUrl:
+          'https://amzn-s3-blog-app.s3.us-east-1.amazonaws.com/posts/images/original/653706385_940901828488443_4536197330707986168_n.jpg',
+        imageThumbnailUrl:
+          'https://amzn-s3-blog-app.s3.us-east-1.amazonaws.com/posts/images/thumbnails/thumb-653706385_940901828488443_4536197330707986168_n.jpg',
       });
 
       // Add categories

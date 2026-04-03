@@ -7,11 +7,8 @@ import { PostController } from './post.controller';
 
 // Services
 import { PostService } from './post.service';
-import {
-  CacheService,
-  ImageProcessingService,
-  StorageService,
-} from '@/common/services';
+import { CacheService } from '@/common/services';
+import { StorageService } from '@/shared/services/s3/storage.service';
 
 // Guards
 import { PostOwnerGuard, PostOwnerOrAdminGuard } from './post.guards';
@@ -29,7 +26,6 @@ import { User } from '@/modules/user/user.entity';
     PostOwnerGuard,
     PostOwnerOrAdminGuard,
     CacheService,
-    ImageProcessingService,
     StorageService,
   ],
   exports: [PostService],

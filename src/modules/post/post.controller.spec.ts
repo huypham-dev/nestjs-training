@@ -194,11 +194,15 @@ describe('PostController', () => {
         status: PostStatus.DRAFT,
       });
       expect(result.data.categories).toHaveLength(2);
-      expect(postService.createPost).toHaveBeenCalledWith(currentUser.id, {
-        title: payload.title,
-        content: payload.content,
-        categoryIds: payload.categoryIds,
-      });
+      expect(postService.createPost).toHaveBeenCalledWith(
+        currentUser.id,
+        {
+          title: payload.title,
+          content: payload.content,
+          categoryIds: payload.categoryIds,
+        },
+        undefined
+      );
     });
 
     it('should create post without categories', async () => {
@@ -283,11 +287,16 @@ describe('PostController', () => {
       // Assert
       expect(result.data.title).toBe('Updated Title');
       expect(result.data.categories).toHaveLength(1);
-      expect(postService.updatePost).toHaveBeenCalledWith(postId, {
-        title: payload.title,
-        content: payload.content,
-        categoryIds: payload.categoryIds,
-      });
+      expect(postService.updatePost).toHaveBeenCalledWith(
+        postId,
+        {
+          title: payload.title,
+          content: payload.content,
+          categoryIds: payload.categoryIds,
+          status: undefined,
+        },
+        undefined
+      );
     });
 
     it('should update only provided fields', async () => {

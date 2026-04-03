@@ -57,14 +57,6 @@ export class WebhookService {
       case 'user.updated':
         await this.handleUserUpdated(event);
         break;
-      case 'user.created':
-        this.logger.log(`User created: ${event.data.id}`);
-        // Handle user creation if needed
-        break;
-      case 'user.deleted':
-        this.logger.log(`User deleted: ${event.data.id}`);
-        // Handle user deletion if needed
-        break;
       default:
         this.logger.log(`Unhandled event type: ${event.type}`);
     }

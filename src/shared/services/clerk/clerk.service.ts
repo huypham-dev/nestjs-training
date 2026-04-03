@@ -1,10 +1,11 @@
 // Dependencies
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClerkClient } from '@clerk/backend';
 
 @Injectable()
 export class ClerkService {
+  private readonly logger = new Logger(ClerkService.name);
   private clerkClient: ReturnType<typeof createClerkClient>;
 
   constructor(private readonly configService: ConfigService) {
@@ -20,8 +21,9 @@ export class ClerkService {
   async lockUser(clerkUserId: string): Promise<void> {
     try {
       await this.clerkClient.users.lockUser(clerkUserId);
+      this.logger.log(`Successfully locked Clerk user ${clerkUserId}`);
     } catch (error) {
-      console.error(`Failed to lock Clerk user ${clerkUserId}:`, error);
+      this.logger.error(`Failed to lock Clerk user ${clerkUserId}:`, error);
       throw new Error('Failed to lock user on Clerk');
     }
   }
@@ -33,8 +35,9 @@ export class ClerkService {
   async unlockUser(clerkUserId: string): Promise<void> {
     try {
       await this.clerkClient.users.unlockUser(clerkUserId);
+      this.logger.log(`Successfully unlocked Clerk user ${clerkUserId}`);
     } catch (error) {
-      console.error(`Failed to unlock Clerk user ${clerkUserId}:`, error);
+      this.logger.error(`Failed to unlock Clerk user ${clerkUserId}:`, error);
       throw new Error('Failed to unlock user on Clerk');
     }
   }

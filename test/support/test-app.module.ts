@@ -28,6 +28,7 @@ import { RolesGuard } from '@/common/guards';
 
 // Services
 import { CacheService } from '@/common/services';
+import { ClerkService } from '@/shared/services/clerk/clerk.service';
 
 // Config
 import { createDatabaseConfig } from '@/config';
@@ -78,6 +79,15 @@ import { MockAuthMiddleware } from './mock-auth.middleware';
   ],
   providers: [
     CacheService,
+    {
+      provide: ClerkService,
+      useValue: {
+        lockUser: jest.fn().mockResolvedValue(undefined),
+        unlockUser: jest.fn().mockResolvedValue(undefined),
+        updateUser: jest.fn().mockResolvedValue(undefined),
+        deleteUser: jest.fn().mockResolvedValue(undefined),
+      },
+    },
     {
       provide: APP_FILTER,
       useClass: GlobalExceptionFilter,

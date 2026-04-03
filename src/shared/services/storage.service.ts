@@ -7,6 +7,7 @@ import {
   DeleteObjectsCommand,
   PutObjectCommandInput,
 } from '@aws-sdk/client-s3';
+import sharp from 'sharp';
 
 export interface UploadResult {
   key: string;
@@ -20,6 +21,21 @@ export interface UploadOptions {
   metadata?: Record<string, string>;
 }
 
+export interface ProcessedImage {
+  buffer: Buffer;
+  width: number;
+  height: number;
+  format: string;
+  size: number;
+}
+
+export interface ThumbnailOptions {
+  width?: number;
+  height?: number;
+  quality?: number;
+  fit?: keyof sharp.FitEnum;
+}
+
 @Injectable()
 export class StorageService {
   private readonly logger = new Logger(StorageService.name);
@@ -27,6 +43,8 @@ export class StorageService {
   private readonly bucket: string;
   private readonly region: string;
   private readonly baseUrl: string;
+  private readonly DEFAULT_THUMBNAIL_WIDTH = 400;
+  private readonly DEFAULT_QUALITY = 80;
 
   constructor(private readonly configService: ConfigService) {
     this.region = this.configService.get<string>('AWS_REGION') || 'us-east-1';
@@ -104,12 +122,14 @@ export class StorageService {
     folder: string = 'posts/images'
   ): Promise<{ original: UploadResult; thumbnail: UploadResult }> {
     try {
+      const timestamp = Date.now();
+      const uniqueFilename = `${timestamp}-${filename}`;
       const [original, thumbnail] = await Promise.all([
-        this.uploadFile(originalBuffer, filename, {
+        this.uploadFile(originalBuffer, uniqueFilename, {
           folder: `${folder}/original`,
           contentType: 'image/jpeg',
         }),
-        this.uploadFile(thumbnailBuffer, `thumb-${filename}`, {
+        this.uploadFile(thumbnailBuffer, `thumb-${uniqueFilename}`, {
           folder: `${folder}/thumbnails`,
           contentType: 'image/jpeg',
         }),
@@ -197,6 +217,94 @@ export class StorageService {
 
     if (keysToDelete.length > 0) {
       await this.deleteFiles(keysToDelete);
+    }
+  }
+
+  /**
+   * Process and optimize an image
+   * Converts to JPEG and compresses
+   */
+  async processImage(
+    buffer: Buffer,
+    quality: number = this.DEFAULT_QUALITY
+  ): Promise<ProcessedImage> {
+    try {
+      const processed = await sharp(buffer)
+        .jpeg({ quality, mozjpeg: true })
+        .toBuffer({ resolveWithObject: true });
+
+      return {
+        buffer: processed.data,
+        width: processed.info.width,
+        height: processed.info.height,
+        format: processed.info.format,
+        size: processed.info.size,
+      };
+    } catch (error) {
+      this.logger.error('Error processing image:', error);
+      throw new Error('Failed to process image');
+    }
+  }
+
+  /**
+   * Generate a thumbnail from an image buffer
+   * Resizes to specified width while maintaining aspect ratio
+   */
+  async generateThumbnail(
+    buffer: Buffer,
+    options: ThumbnailOptions = {}
+  ): Promise<ProcessedImage> {
+    const {
+      width = this.DEFAULT_THUMBNAIL_WIDTH,
+      height,
+      quality = this.DEFAULT_QUALITY,
+      fit = 'inside',
+    } = options;
+
+    try {
+      const processed = await sharp(buffer)
+        .resize(width, height, {
+          fit,
+          withoutEnlargement: true,
+        })
+        .jpeg({ quality, mozjpeg: true })
+        .toBuffer({ resolveWithObject: true });
+
+      return {
+        buffer: processed.data,
+        width: processed.info.width,
+        height: processed.info.height,
+        format: processed.info.format,
+        size: processed.info.size,
+      };
+    } catch (error) {
+      this.logger.error('Error generating thumbnail:', error);
+      throw new Error('Failed to generate thumbnail');
+    }
+  }
+
+  /**
+   * Validate image buffer
+   * Checks if the buffer is a valid image
+   */
+  async validateImage(buffer: Buffer): Promise<boolean> {
+    try {
+      await sharp(buffer).metadata();
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Get image metadata
+   */
+  async getMetadata(buffer: Buffer): Promise<sharp.Metadata> {
+    try {
+      return await sharp(buffer).metadata();
+    } catch (error) {
+      this.logger.error('Error getting image metadata:', error);
+      throw new Error('Failed to get image metadata');
     }
   }
 }

@@ -10,11 +10,14 @@ import { UserService } from '@/modules/user/user.service';
 import { AuthenticationException } from '@/common/exceptions';
 
 /**
- * Extract Clerk auth info and attach to request.auth
+ * Extract Clerk auth info, sync user with database, and attach to request
+ * Creates user if doesn't exist
  */
 @Injectable()
-export class ClerkAuthMiddleware implements NestMiddleware {
-  use(req: Request, _res: Response, next: NextFunction) {
+export class AuthMiddleware implements NestMiddleware {
+  constructor(private readonly userService: UserService) {}
+
+  async use(req: Request, _res: Response, next: NextFunction) {
     const auth = getAuth(req);
 
     if (!auth.userId) {
@@ -23,38 +26,19 @@ export class ClerkAuthMiddleware implements NestMiddleware {
 
     const { email, fullName } = auth.sessionClaims || {};
 
-    if (auth.userId) {
-      req.auth = {
-        authId: auth.userId,
-        email: email as string,
-        fullName: fullName as string,
-      };
-    }
-
-    next();
-  }
-}
-
-/**
- * Sync user with database and attach to request.user
- * Creates user if doesn't exist
- */
-@Injectable()
-export class SyncUserMiddleware implements NestMiddleware {
-  constructor(private readonly userService: UserService) {}
-
-  async use(req: Request, _res: Response, next: NextFunction) {
-    const auth = req.auth;
-
-    if (!auth?.authId) {
-      throw new AuthenticationException();
-    }
+    // Attach auth info to request
+    req.auth = {
+      authId: auth.userId,
+      email: email as string,
+      fullName: fullName as string,
+    };
 
     try {
+      // Sync user with database
       const user = await this.userService.syncUser(
-        auth.authId,
-        auth.email,
-        auth.fullName
+        auth.userId,
+        email as string,
+        fullName as string
       );
 
       req.user = user;

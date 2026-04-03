@@ -81,16 +81,7 @@ describe('UserController', () => {
 
       // Assert
       expect(result).toEqual({
-        data: users.map((user) => ({
-          id: user.id,
-          authId: user.authId,
-          fullName: user.fullName,
-          email: user.email,
-          role: user.role,
-          status: user.status,
-          createdAt: expect.any(String),
-          updatedAt: expect.any(String),
-        })),
+        data: users,
         meta: serviceResult.meta,
       });
       expect(userService.getAllUsers).toHaveBeenCalledWith({
@@ -161,16 +152,7 @@ describe('UserController', () => {
 
       // Assert
       expect(result).toEqual({
-        data: {
-          id: user.id,
-          authId: user.authId,
-          fullName: user.fullName,
-          email: user.email,
-          role: user.role,
-          status: user.status,
-          createdAt: expect.any(String),
-          updatedAt: expect.any(String),
-        },
+        data: user,
       });
       expect(userService.getUserById).toHaveBeenCalledWith(userId);
     });

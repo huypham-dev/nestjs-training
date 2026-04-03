@@ -28,8 +28,10 @@ import { GlobalExceptionFilter } from '@/common/filters';
 // Services
 import { CacheService } from '@/common/services';
 
+import { SharedModule } from '@/shared/shared.module';
+
 // Middlewares
-import { ClerkAuthMiddleware, SyncUserMiddleware } from '@/common/middlewares';
+import { AuthMiddleware } from '@/common/middlewares';
 
 // Config
 import { createDatabaseConfig } from '@/config';
@@ -75,6 +77,7 @@ import { ActiveUserGuard, RolesGuard } from './common/guards';
     CategoryModule,
     PostModule,
     WebhookModule,
+    SharedModule,
   ],
   providers: [
     CacheService,
@@ -112,8 +115,7 @@ export class AppModule implements NestModule {
           ),
           secretKey: this.configService.get<string>('CLERK_SECRET_KEY'),
         }),
-        ClerkAuthMiddleware,
-        SyncUserMiddleware
+        AuthMiddleware
       )
       .exclude(
         { path: 'webhooks/clerk', method: RequestMethod.POST },

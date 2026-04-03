@@ -22,17 +22,22 @@ export const createMockRepository = () => ({
 /**
  * Mock EntityManager for MikroORM
  */
-export const createMockEntityManager = () => ({
-  find: jest.fn(),
-  findOne: jest.fn(),
-  findAndCount: jest.fn(),
-  create: jest.fn(),
-  persist: jest.fn(),
-  persistAndFlush: jest.fn(),
-  flush: jest.fn(),
-  remove: jest.fn(),
-  removeAndFlush: jest.fn(),
-  assign: jest.fn(),
-  populate: jest.fn(),
-  fork: jest.fn(),
-});
+export const createMockEntityManager = () => {
+  const flush = jest.fn();
+  const persist = jest.fn().mockReturnValue({ flush });
+
+  return {
+    find: jest.fn(),
+    findOne: jest.fn(),
+    findAndCount: jest.fn(),
+    create: jest.fn(),
+    persist,
+    persistAndFlush: jest.fn(),
+    flush,
+    remove: jest.fn(),
+    removeAndFlush: jest.fn(),
+    assign: jest.fn(),
+    populate: jest.fn(),
+    fork: jest.fn(),
+  };
+};

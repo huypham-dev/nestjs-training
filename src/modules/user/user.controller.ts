@@ -63,7 +63,7 @@ export class UserController {
   @Get()
   @HttpCode(HttpStatus.OK)
   @Roles(UserRole.ADMIN)
-  @UseInterceptors(CacheInterceptor)
+  // @UseInterceptors(CacheInterceptor)
   // @CacheKey(CACHE_KEYS.USERS_LIST)
   // @CacheTTL(60000) // 60 seconds
   @ApiDocumentation({

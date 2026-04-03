@@ -1,5 +1,4 @@
 import {
-  Body,
   Controller,
   Headers,
   HttpCode,
@@ -45,8 +44,7 @@ export class WebhookController {
       return { received: true };
     } catch (error) {
       this.logger.error('Error handling Clerk webhook:', error);
-      // Still return 200 to acknowledge receipt
-      // Log error for investigation
+
       return { received: true };
     }
   }

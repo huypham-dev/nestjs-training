@@ -11,6 +11,7 @@ import {
   AuthorizationException,
   ResourceNotFoundException,
 } from '@/common/exceptions';
+import { StorageService } from '@/shared/services/s3/storage.service';
 
 import {
   createMockRepository,
@@ -29,6 +30,7 @@ describe('PostService', () => {
   let categoryRepository: ReturnType<typeof createMockRepository>;
   let userRepository: ReturnType<typeof createMockRepository>;
   let entityManager: ReturnType<typeof createMockEntityManager>;
+  let storageService: jest.Mocked<StorageService>;
 
   beforeEach(async () => {
     // Create mock instances
@@ -36,6 +38,21 @@ describe('PostService', () => {
     categoryRepository = createMockRepository();
     userRepository = createMockRepository();
     entityManager = createMockEntityManager();
+
+    // Create mock services
+    storageService = {
+      uploadFile: jest.fn(),
+      deleteFile: jest.fn(),
+      getFileUrl: jest.fn(),
+      processImage: jest.fn(),
+      generateThumbnail: jest.fn(),
+      uploadImage: jest.fn(),
+      deleteFiles: jest.fn(),
+      deleteImageByUrls: jest.fn(),
+      validateImage: jest.fn(),
+      getMetadata: jest.fn(),
+      extractKeyFromUrl: jest.fn(),
+    } as any;
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -55,6 +72,10 @@ describe('PostService', () => {
         {
           provide: EntityManager,
           useValue: entityManager,
+        },
+        {
+          provide: StorageService,
+          useValue: storageService,
         },
       ],
     }).compile();
@@ -315,7 +336,6 @@ describe('PostService', () => {
 
       categoryRepository.find.mockResolvedValue(categories);
       postRepository.create.mockReturnValue(newPost);
-      entityManager.persistAndFlush.mockResolvedValue(undefined);
       entityManager.populate.mockResolvedValue(newPost);
 
       // Act
@@ -336,7 +356,7 @@ describe('PostService', () => {
         user: userId,
       });
       expect(newPost.categories.add).toHaveBeenCalledTimes(2);
-      expect(entityManager.persistAndFlush).toHaveBeenCalled();
+      expect(entityManager.persist).toHaveBeenCalledWith(newPost);
       expect(entityManager.populate).toHaveBeenCalledWith(newPost, [
         'user',
         'categories',

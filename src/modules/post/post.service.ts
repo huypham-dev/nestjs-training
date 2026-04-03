@@ -22,7 +22,7 @@ import { SuccessResponse } from '@/common/interfaces';
 import { PostQueryDto, UpdatePostDto } from './post.dto';
 
 // Services
-import { ImageProcessingService, StorageService } from '@/common/services';
+import { StorageService } from '@/shared/services';
 
 // Constants
 import { IMAGE_SETTINGS } from './post.constants';
@@ -37,7 +37,6 @@ export class PostService {
     @InjectRepository(User)
     private readonly userRepository: EntityRepository<User>,
     private readonly em: EntityManager,
-    private readonly imageProcessingService: ImageProcessingService,
     private readonly storageService: StorageService
   ) {}
 
@@ -339,13 +338,13 @@ export class PostService {
     imageFile: Express.Multer.File
   ): Promise<{ imageUrl: string; imageThumbnailUrl: string }> {
     // Process original image
-    const processedOriginal = await this.imageProcessingService.processImage(
+    const processedOriginal = await this.storageService.processImage(
       imageFile.buffer,
       IMAGE_SETTINGS.JPEG_QUALITY
     );
 
     // Generate thumbnail
-    const thumbnail = await this.imageProcessingService.generateThumbnail(
+    const thumbnail = await this.storageService.generateThumbnail(
       imageFile.buffer,
       {
         width: IMAGE_SETTINGS.THUMBNAIL_WIDTH,
