@@ -1,10 +1,9 @@
 // Dependencies
 import { WebhookEvent } from '@clerk/backend';
 import { Injectable, Logger } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { Webhook } from 'svix';
 
 // Services
+import { ClerkService } from '@/shared/services';
 import { UserService } from '../user/user.service';
 
 // Constants
@@ -13,18 +12,11 @@ import { UserStatus, CLERK_WEBHOOK_EVENTS } from '@/constants';
 @Injectable()
 export class WebhookService {
   private readonly logger = new Logger(WebhookService.name);
-  private readonly webhookSecret: string;
 
   constructor(
-    private readonly configService: ConfigService,
+    private readonly clerkService: ClerkService,
     private readonly userService: UserService
-  ) {
-    this.webhookSecret =
-      this.configService.get<string>('CLERK_WEBHOOK_SECRET') || '';
-    if (!this.webhookSecret) {
-      this.logger.warn('CLERK_WEBHOOK_SECRET not configured');
-    }
-  }
+  ) {}
 
   async verifyAndProcess(
     payload: string,
@@ -32,24 +24,13 @@ export class WebhookService {
     svixTimestamp: string,
     svixSignature: string
   ): Promise<void> {
-    if (!this.webhookSecret) {
-      throw new Error('CLERK_WEBHOOK_SECRET is not configured');
-    }
-
-    // Verify the webhook signature
-    const wh = new Webhook(this.webhookSecret);
-    let event: WebhookEvent;
-
-    try {
-      event = wh.verify(payload, {
-        'svix-id': svixId,
-        'svix-timestamp': svixTimestamp,
-        'svix-signature': svixSignature,
-      }) as WebhookEvent;
-    } catch (error) {
-      this.logger.error('Webhook verification failed:', error);
-      throw error;
-    }
+    // Verify webhook signature using ClerkService
+    const event = this.clerkService.verifyWebhook(
+      payload,
+      svixId,
+      svixTimestamp,
+      svixSignature
+    );
 
     this.logger.log(`Verified webhook event: ${event.type}`);
 

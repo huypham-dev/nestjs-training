@@ -26,6 +26,9 @@ import { UserRole, UserStatus, PostStatus } from '@/constants';
 import { TEST_USERS } from '../helpers/auth.helper';
 import { createSupertestApp } from '../helpers/test.helper';
 
+// Services
+import { ClerkService } from '@/shared/services/clerk/clerk.service';
+
 describe('Post API (e2e)', () => {
   let app: INestApplication;
   let orm: MikroORM;
@@ -41,6 +44,17 @@ describe('Post API (e2e)', () => {
     })
       .overrideInterceptor(CacheInterceptor)
       .useClass(NoOpCacheInterceptor)
+      .overrideProvider(ClerkService)
+      .useValue({
+        lockUser: jest.fn().mockResolvedValue(undefined),
+        unlockUser: jest.fn().mockResolvedValue(undefined),
+        updateUser: jest.fn().mockResolvedValue(undefined),
+        deleteUser: jest.fn().mockResolvedValue(undefined),
+        verifyWebhook: jest.fn().mockImplementation(() => ({
+          type: 'user.updated',
+          data: {},
+        })),
+      })
       .compile();
 
     app = moduleFixture.createNestApplication();
@@ -189,29 +203,35 @@ describe('Post API (e2e)', () => {
       await em.persist([publishedPost, draftPost, user2Post]).flush();
     });
 
-    it('should return only published posts for regular users', async () => {
+    it('should return published posts and own drafts for regular users', async () => {
       MockAuthInterceptor.setMockUser(TEST_USERS.USER1);
 
       const response = await createSupertestApp(app).get('/posts').expect(200);
 
       expect(response.body).toMatchObject({});
 
-      // Should only see published posts (2 posts)
+      // Should see published posts (2) + own draft (1) = 3 posts
+      expect(response.body.data).toHaveLength(3);
+
+      // Verify we have both published and draft posts
+      const statuses = response.body.data.map((post: any) => post.status);
+      expect(statuses).toContain(PostStatus.PUBLISHED);
+      expect(statuses).toContain(PostStatus.DRAFT);
+    });
+
+    it('should return only published posts for admin users', async () => {
+      MockAuthInterceptor.setMockUser(TEST_USERS.ADMIN);
+
+      const response = await createSupertestApp(app).get('/posts').expect(200);
+
+      // Admin sees published posts (2) + own drafts (0) = 2 posts
+      // Admin has no special privilege to see other users' drafts
       expect(response.body.data).toHaveLength(2);
       expect(
         response.body.data.every(
           (post: any) => post.status === PostStatus.PUBLISHED
         )
       ).toBe(true);
-    });
-
-    it('should return all posts for admin users', async () => {
-      MockAuthInterceptor.setMockUser(TEST_USERS.ADMIN);
-
-      const response = await createSupertestApp(app).get('/posts').expect(200);
-
-      // Admin should see all posts (3 posts)
-      expect(response.body.data).toHaveLength(3);
     });
   });
 
@@ -288,16 +308,15 @@ describe('Post API (e2e)', () => {
       });
     });
 
-    it('should allow admins to view any post', async () => {
+    it('should deny admins access to draft posts they do not own', async () => {
       MockAuthInterceptor.setMockUser(TEST_USERS.ADMIN);
 
       const response = await createSupertestApp(app)
         .get(`/posts/${draftPostId}`)
-        .expect(200);
+        .expect(403);
 
-      expect(response.body.data).toMatchObject({
-        id: draftPostId,
-        status: PostStatus.DRAFT,
+      expect(response.body).toMatchObject({
+        code: 'AUTH_FORBIDDEN',
       });
     });
 
@@ -369,16 +388,16 @@ describe('Post API (e2e)', () => {
       });
     });
 
-    it('should allow admin to update any post', async () => {
+    it('should deny admin from updating posts they do not own', async () => {
       MockAuthInterceptor.setMockUser(TEST_USERS.ADMIN);
 
       const response = await createSupertestApp(app)
         .patch(`/posts/${postId}`)
         .send({ title: 'Admin Updated Title' })
-        .expect(200);
+        .expect(403);
 
-      expect(response.body.data).toMatchObject({
-        title: 'Admin Updated Title',
+      expect(response.body).toMatchObject({
+        code: 'AUTH_FORBIDDEN',
       });
     });
   });
@@ -423,10 +442,18 @@ describe('Post API (e2e)', () => {
       });
     });
 
-    it('should allow admin to delete any post', async () => {
+    it('should deny admin from deleting posts they do not own', async () => {
       MockAuthInterceptor.setMockUser(TEST_USERS.ADMIN);
 
-      await createSupertestApp(app).delete(`/posts/${postId}`).expect(204);
+      // Admin cannot delete because they cannot view the draft post first
+      // The delete operation tries to get the post before deletion
+      const response = await createSupertestApp(app)
+        .delete(`/posts/${postId}`)
+        .expect(403);
+
+      expect(response.body).toMatchObject({
+        code: 'AUTH_FORBIDDEN',
+      });
     });
   });
 
@@ -488,15 +515,21 @@ describe('Post API (e2e)', () => {
       expect(response.body.data).toHaveLength(3);
     });
 
-    it('should return all posts for admin', async () => {
+    it('should return only published posts for admin viewing other users', async () => {
       MockAuthInterceptor.setMockUser(TEST_USERS.ADMIN);
 
       const response = await createSupertestApp(app)
         .get(`/users/${user1.id}/posts`)
         .expect(200);
 
-      // Admin should see all posts (3 posts)
-      expect(response.body.data).toHaveLength(3);
+      // Admin sees only published posts (2) when viewing other users' posts
+      // Admin has no special privilege to see other users' drafts
+      expect(response.body.data).toHaveLength(2);
+      expect(
+        response.body.data.every(
+          (post: any) => post.status === PostStatus.PUBLISHED
+        )
+      ).toBe(true);
     });
 
     it('should return 404 for non-existent user', async () => {

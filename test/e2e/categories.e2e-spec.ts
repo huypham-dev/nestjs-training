@@ -24,6 +24,9 @@ import { UserRole, UserStatus } from '@/constants';
 import { TEST_USERS } from '../helpers/auth.helper';
 import { createSupertestApp } from '../helpers/test.helper';
 
+// Services
+import { ClerkService } from '@/shared/services/clerk/clerk.service';
+
 describe('Category API (e2e)', () => {
   let app: INestApplication;
   let orm: MikroORM;
@@ -34,6 +37,17 @@ describe('Category API (e2e)', () => {
     })
       .overrideInterceptor(CacheInterceptor)
       .useClass(NoOpCacheInterceptor)
+      .overrideProvider(ClerkService)
+      .useValue({
+        lockUser: jest.fn().mockResolvedValue(undefined),
+        unlockUser: jest.fn().mockResolvedValue(undefined),
+        updateUser: jest.fn().mockResolvedValue(undefined),
+        deleteUser: jest.fn().mockResolvedValue(undefined),
+        verifyWebhook: jest.fn().mockImplementation(() => ({
+          type: 'user.updated',
+          data: {},
+        })),
+      })
       .compile();
 
     app = moduleFixture.createNestApplication();
