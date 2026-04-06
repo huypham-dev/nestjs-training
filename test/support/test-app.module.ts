@@ -106,6 +106,7 @@ import { createDatabaseConfig } from '@/config';
       useClass: RolesGuard,
     },
   ],
+  exports: [UserModule, CategoryModule, PostModule, ClerkService],
 })
 export class TestAppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

@@ -34,23 +34,18 @@ export class WebhookController {
     @Headers('svix-signature') svixSignature: string,
     @Req() req: RequestWithRawBody
   ): Promise<{ received: boolean }> {
-    try {
-      // Get the raw body
-      const payload = req.rawBody?.toString('utf8') || JSON.stringify(req.body);
+    // Get the raw body
+    const payload = req.rawBody?.toString('utf8') || JSON.stringify(req.body);
 
-      // Verify and process the webhook
-      await this.webhookService.verifyAndProcess(
-        payload,
-        svixId,
-        svixTimestamp,
-        svixSignature
-      );
+    // Verify and process the webhook
+    // If this throws an error, Clerk will retry the webhook
+    await this.webhookService.verifyAndProcess(
+      payload,
+      svixId,
+      svixTimestamp,
+      svixSignature
+    );
 
-      return { received: true };
-    } catch (error) {
-      this.logger.error('Error handling Clerk webhook:', error);
-
-      return { received: true };
-    }
+    return { received: true };
   }
 }

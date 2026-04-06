@@ -76,4 +76,18 @@ export class ClerkService {
       throw new Error('Failed to unlock user on Clerk');
     }
   }
+
+  /**
+   * Delete user account on Clerk
+   * Permanently removes the user from Clerk
+   */
+  async deleteUser(clerkUserId: string): Promise<void> {
+    try {
+      await this.clerkClient.users.deleteUser(clerkUserId);
+      this.logger.log(`Successfully deleted Clerk user ${clerkUserId}`);
+    } catch (error) {
+      this.logger.error(`Failed to delete Clerk user ${clerkUserId}:`, error);
+      throw new Error('Failed to delete user on Clerk');
+    }
+  }
 }

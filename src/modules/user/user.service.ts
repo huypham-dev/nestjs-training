@@ -1,7 +1,7 @@
 // Dependencies
 import { EntityManager, EntityRepository } from '@mikro-orm/core';
 import { InjectRepository } from '@mikro-orm/nestjs';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 
 // Common
 import { ResourceNotFoundException } from '@/common/exceptions';
@@ -18,6 +18,8 @@ import { UserStatus } from '@/constants';
 
 @Injectable()
 export class UserService {
+  private readonly logger = new Logger(UserService.name);
+
   constructor(
     @InjectRepository(User)
     private readonly userRepository: EntityRepository<User>,
@@ -120,7 +122,21 @@ export class UserService {
 
     Object.assign(user, updates);
 
-    await this.em.flush();
+    try {
+      await this.em.flush();
+      this.logger.log(
+        `Successfully updated user ${user.id} from webhook: ${JSON.stringify(updates)}`
+      );
+    } catch (error) {
+      this.logger.error(
+        `Failed to update user ${user.id} from webhook:`,
+        error
+      );
+      // Re-throw error so webhook can be retried by Clerk
+      throw new Error(
+        `Failed to update user from webhook: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
 
     return user;
   }
@@ -146,5 +162,43 @@ export class UserService {
     }
 
     return user;
+  }
+
+  // Delete user by their internal system ID
+  async deleteUser(id: string): Promise<void> {
+    const user = await this.getUserById(id);
+
+    // Delete user from Clerk first
+    await this.clerkService.deleteUser(user.authId);
+
+    // Delete user from database after successful Clerk deletion
+    await this.em.remove(user).flush();
+  }
+
+  // Delete user by their Clerk authentication ID (from webhook)
+  async deleteUserByAuthId(authId: string): Promise<void> {
+    const user = await this.userRepository.findOne({ authId });
+
+    if (!user) {
+      this.logger.warn(
+        `User deletion webhook received for non-existent authId: ${authId}`
+      );
+      return;
+    }
+
+    try {
+      // Delete user from database (Clerk already deleted)
+      await this.em.remove(user).flush();
+      this.logger.log(`Successfully deleted user from database: ${user.id}`);
+    } catch (error) {
+      this.logger.error(
+        `Failed to delete user ${user.id} from database:`,
+        error
+      );
+      // Re-throw error so webhook can be retried by Clerk
+      throw new Error(
+        `Failed to delete user from database: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
   }
 }

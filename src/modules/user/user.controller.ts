@@ -3,6 +3,7 @@ import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
@@ -269,5 +270,37 @@ export class UserController {
     return {
       data: updatedUser,
     };
+  }
+
+  // Delete user by ID (Admin only)
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @UseGuards(PreventSameUserActionGuard)
+  @Roles(UserRole.ADMIN)
+  @ApiDocumentation({
+    operation: {
+      summary: 'Delete user (Admin only)',
+      description:
+        'Permanently delete a user account from both Clerk and the database. This action cannot be undone. Only accessible by administrators. Cannot delete own account.',
+    },
+    params: [
+      {
+        name: 'id',
+        type: 'string',
+        format: 'uuid',
+        description: 'User UUID',
+        example: '550e8400-e29b-41d4-a716-446655440000',
+      },
+    ],
+    response: {
+      status: 204,
+      description: 'Successfully deleted user',
+    },
+  })
+  async deleteUser(@Param('id', ParseUUIDPipe) userId: string) {
+    await this.userService.deleteUser(userId);
+
+    // Invalidate user caches
+    await this.cacheService.invalidateUserCaches(userId);
   }
 }

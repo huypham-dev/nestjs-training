@@ -514,7 +514,9 @@ describe('PostService', () => {
 
       // Act & Assert
       await expect(
-        service.updatePost('non-existent', { title: 'Test' })
+        service.updatePost('non-existent', {
+          title: 'Test',
+        })
       ).rejects.toThrow(ResourceNotFoundException);
     });
 
