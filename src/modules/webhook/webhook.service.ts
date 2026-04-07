@@ -43,9 +43,6 @@ export class WebhookService {
       case CLERK_WEBHOOK_EVENTS.USER_UPDATED:
         await this.handleUserUpdated(event);
         break;
-      case CLERK_WEBHOOK_EVENTS.USER_DELETED:
-        await this.handleUserDeleted(event);
-        break;
       default:
         this.logger.log(`Unhandled event type: ${event.type}`);
     }
@@ -104,33 +101,6 @@ export class WebhookService {
       }
     } catch (error) {
       this.logger.error('Error handling user.updated event:', error);
-      throw error;
-    }
-  }
-
-  private async handleUserDeleted(event: WebhookEvent): Promise<void> {
-    try {
-      if (event.type !== CLERK_WEBHOOK_EVENTS.USER_DELETED) {
-        return;
-      }
-
-      const { id: authId } = event.data;
-
-      if (!authId || typeof authId !== 'string') {
-        this.logger.warn('User deleted event missing authId');
-        return;
-      }
-
-      this.logger.log(`Processing user.deleted for authId: ${authId}`);
-
-      // Delete user from database
-      await this.userService.deleteUserByAuthId(authId);
-
-      this.logger.log(
-        `Successfully processed user.deleted webhook for authId: ${authId}`
-      );
-    } catch (error) {
-      this.logger.error('Error handling user.deleted event:', error);
       throw error;
     }
   }

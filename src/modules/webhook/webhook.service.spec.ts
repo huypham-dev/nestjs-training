@@ -18,7 +18,6 @@ describe('WebhookService', () => {
     const mockUserService = {
       getUserByAuthId: jest.fn(),
       updateUserFromWebhook: jest.fn(),
-      deleteUserByAuthId: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -179,56 +178,6 @@ describe('WebhookService', () => {
       await (service as any).handleUserUpdated(mockEvent);
 
       expect(userService.updateUserFromWebhook).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('handleUserDeleted', () => {
-    const mockEvent = {
-      type: CLERK_WEBHOOK_EVENTS.USER_DELETED,
-      data: {
-        id: 'auth-123',
-      },
-    } as unknown as WebhookEvent;
-
-    it('should abort if event type is not user.deleted', async () => {
-      const invalidEvent = {
-        type: 'user.created',
-        data: {},
-      } as unknown as WebhookEvent;
-
-      await (service as any).handleUserDeleted(invalidEvent);
-
-      expect(userService.deleteUserByAuthId).not.toHaveBeenCalled();
-    });
-
-    it('should abort if authId is missing from data', async () => {
-      const invalidEvent = {
-        type: CLERK_WEBHOOK_EVENTS.USER_DELETED,
-        data: {},
-      } as unknown as WebhookEvent;
-
-      await (service as any).handleUserDeleted(invalidEvent);
-
-      expect(userService.deleteUserByAuthId).not.toHaveBeenCalled();
-    });
-
-    it('should delete user from database when user.deleted event is received', async () => {
-      userService.deleteUserByAuthId.mockResolvedValue(undefined);
-
-      await (service as any).handleUserDeleted(mockEvent);
-
-      expect(userService.deleteUserByAuthId).toHaveBeenCalledWith('auth-123');
-    });
-
-    it('should handle errors during user deletion', async () => {
-      const error = new Error('Database error');
-      userService.deleteUserByAuthId.mockRejectedValue(error);
-
-      await expect(
-        (service as any).handleUserDeleted(mockEvent)
-      ).rejects.toThrow('Database error');
-
-      expect(userService.deleteUserByAuthId).toHaveBeenCalledWith('auth-123');
     });
   });
 });

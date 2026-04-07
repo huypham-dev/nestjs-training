@@ -49,7 +49,6 @@ describe('Post API (e2e)', () => {
         lockUser: jest.fn().mockResolvedValue(undefined),
         unlockUser: jest.fn().mockResolvedValue(undefined),
         updateUser: jest.fn().mockResolvedValue(undefined),
-        deleteUser: jest.fn().mockResolvedValue(undefined),
         verifyWebhook: jest.fn().mockImplementation(() => ({
           type: 'user.updated',
           data: {},

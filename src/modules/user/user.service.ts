@@ -163,42 +163,4 @@ export class UserService {
 
     return user;
   }
-
-  // Delete user by their internal system ID
-  async deleteUser(id: string): Promise<void> {
-    const user = await this.getUserById(id);
-
-    // Delete user from Clerk first
-    await this.clerkService.deleteUser(user.authId);
-
-    // Delete user from database after successful Clerk deletion
-    await this.em.remove(user).flush();
-  }
-
-  // Delete user by their Clerk authentication ID (from webhook)
-  async deleteUserByAuthId(authId: string): Promise<void> {
-    const user = await this.userRepository.findOne({ authId });
-
-    if (!user) {
-      this.logger.warn(
-        `User deletion webhook received for non-existent authId: ${authId}`
-      );
-      return;
-    }
-
-    try {
-      // Delete user from database (Clerk already deleted)
-      await this.em.remove(user).flush();
-      this.logger.log(`Successfully deleted user from database: ${user.id}`);
-    } catch (error) {
-      this.logger.error(
-        `Failed to delete user ${user.id} from database:`,
-        error
-      );
-      // Re-throw error so webhook can be retried by Clerk
-      throw new Error(
-        `Failed to delete user from database: ${error instanceof Error ? error.message : 'Unknown error'}`
-      );
-    }
-  }
 }

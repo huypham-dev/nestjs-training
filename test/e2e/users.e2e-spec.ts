@@ -41,7 +41,6 @@ describe('User API (e2e)', () => {
         lockUser: jest.fn().mockResolvedValue(undefined),
         unlockUser: jest.fn().mockResolvedValue(undefined),
         updateUser: jest.fn().mockResolvedValue(undefined),
-        deleteUser: jest.fn().mockResolvedValue(undefined),
         verifyWebhook: jest.fn().mockImplementation(() => ({
           type: 'user.updated',
           data: {},
@@ -271,89 +270,6 @@ describe('User API (e2e)', () => {
       const response = await createSupertestApp(app)
         .patch(`/users/${fakeUuid}/status`)
         .send({ status: UserStatus.INACTIVE })
-        .expect(404);
-
-      expect(response.body).toMatchObject({
-        statusCode: 404,
-        code: 'RESOURCE_NOT_FOUND',
-      });
-    });
-  });
-
-  describe('DELETE /users/:id', () => {
-    let userId: string;
-
-    beforeEach(async () => {
-      const em = orm.em.fork();
-      await em.nativeDelete(User, {});
-
-      const admin = em.create(User, {
-        authId: TEST_USERS.ADMIN.authId,
-        email: TEST_USERS.ADMIN.email,
-        fullName: TEST_USERS.ADMIN.fullName,
-        role: UserRole.ADMIN,
-        status: UserStatus.ACTIVE,
-      });
-
-      const user = em.create(User, {
-        authId: TEST_USERS.USER1.authId,
-        email: TEST_USERS.USER1.email,
-        fullName: TEST_USERS.USER1.fullName,
-        role: UserRole.USER,
-        status: UserStatus.ACTIVE,
-      });
-
-      await em.persist([admin, user]).flush();
-      userId = user.id;
-    });
-
-    it('should delete user when authenticated as admin', async () => {
-      MockAuthInterceptor.setMockUser(TEST_USERS.ADMIN);
-
-      await createSupertestApp(app).delete(`/users/${userId}`).expect(204);
-
-      // Verify user is deleted from database
-      const em = orm.em.fork();
-      const deletedUser = await em.findOne(User, { id: userId });
-      expect(deletedUser).toBeNull();
-    });
-
-    it('should return 403 when regular user tries to delete a user', async () => {
-      MockAuthInterceptor.setMockUser(TEST_USERS.USER1);
-
-      const response = await createSupertestApp(app)
-        .delete(`/users/${userId}`)
-        .expect(403);
-
-      expect(response.body).toMatchObject({
-        statusCode: 403,
-        code: 'AUTH_FORBIDDEN',
-      });
-    });
-
-    it('should return 403 when admin tries to delete themselves', async () => {
-      MockAuthInterceptor.setMockUser(TEST_USERS.ADMIN);
-
-      const em = orm.em.fork();
-      const admin = await em.findOne(User, { authId: TEST_USERS.ADMIN.authId });
-
-      const response = await createSupertestApp(app)
-        .delete(`/users/${admin!.id}`)
-        .expect(403);
-
-      expect(response.body).toMatchObject({
-        statusCode: 403,
-        code: 'OPERATION_NOT_ALLOWED',
-      });
-    });
-
-    it('should return 404 for non-existent user', async () => {
-      MockAuthInterceptor.setMockUser(TEST_USERS.ADMIN);
-
-      // Use a valid UUID format but non-existent ID
-      const fakeUuid = '00000000-0000-4000-8000-000000000000';
-      const response = await createSupertestApp(app)
-        .delete(`/users/${fakeUuid}`)
         .expect(404);
 
       expect(response.body).toMatchObject({

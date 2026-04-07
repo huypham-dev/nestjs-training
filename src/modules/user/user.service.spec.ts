@@ -42,7 +42,6 @@ describe('UserService', () => {
     const mockClerkService = {
       lockUser: jest.fn().mockResolvedValue(undefined),
       unlockUser: jest.fn().mockResolvedValue(undefined),
-      deleteUser: jest.fn().mockResolvedValue(undefined),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -436,117 +435,6 @@ describe('UserService', () => {
         avatarUrl: null,
       });
       expect(entityManager.flush).toHaveBeenCalled();
-    });
-  });
-
-  describe('deleteUser', () => {
-    it('should delete user from Clerk and database', async () => {
-      // Arrange
-      const user = createUserFixture({
-        id: 'user-123',
-        authId: 'auth-123',
-      });
-      userRepository.findOne.mockResolvedValue(user);
-      clerkService.deleteUser.mockResolvedValue(undefined);
-      const flushMock = jest.fn().mockResolvedValue(undefined);
-      entityManager.remove.mockReturnValue({ flush: flushMock });
-
-      // Act
-      await service.deleteUser('user-123');
-
-      // Assert
-      expect(userRepository.findOne).toHaveBeenCalledWith({ id: 'user-123' });
-      expect(clerkService.deleteUser).toHaveBeenCalledWith('auth-123');
-      expect(entityManager.remove).toHaveBeenCalledWith(user);
-      expect(flushMock).toHaveBeenCalled();
-    });
-
-    it('should throw error if user not found', async () => {
-      // Arrange
-      userRepository.findOne.mockResolvedValue(null);
-
-      // Act & Assert
-      await expect(service.deleteUser('non-existent-id')).rejects.toThrow(
-        ResourceNotFoundException
-      );
-      expect(clerkService.deleteUser).not.toHaveBeenCalled();
-      expect(entityManager.remove).not.toHaveBeenCalled();
-    });
-
-    it('should not delete from database if Clerk deletion fails', async () => {
-      // Arrange
-      const user = createUserFixture({
-        id: 'user-123',
-        authId: 'auth-123',
-      });
-      userRepository.findOne.mockResolvedValue(user);
-      clerkService.deleteUser.mockRejectedValue(
-        new Error('Clerk deletion failed')
-      );
-
-      // Act & Assert
-      await expect(service.deleteUser('user-123')).rejects.toThrow(
-        'Clerk deletion failed'
-      );
-      expect(clerkService.deleteUser).toHaveBeenCalledWith('auth-123');
-      expect(entityManager.remove).not.toHaveBeenCalled();
-    });
-  });
-
-  describe('deleteUserByAuthId', () => {
-    it('should delete user from database by authId', async () => {
-      // Arrange
-      const user = createUserFixture({
-        id: 'user-123',
-        authId: 'auth-123',
-      });
-      userRepository.findOne.mockResolvedValue(user);
-      const flushMock = jest.fn().mockResolvedValue(undefined);
-      entityManager.remove.mockReturnValue({ flush: flushMock });
-
-      // Act
-      await service.deleteUserByAuthId('auth-123');
-
-      // Assert
-      expect(userRepository.findOne).toHaveBeenCalledWith({
-        authId: 'auth-123',
-      });
-      expect(entityManager.remove).toHaveBeenCalledWith(user);
-      expect(flushMock).toHaveBeenCalled();
-    });
-
-    it('should log warning and return if user not found', async () => {
-      // Arrange
-      userRepository.findOne.mockResolvedValue(null);
-
-      // Act
-      await service.deleteUserByAuthId('non-existent-auth-id');
-
-      // Assert
-      expect(userRepository.findOne).toHaveBeenCalledWith({
-        authId: 'non-existent-auth-id',
-      });
-      expect(entityManager.remove).not.toHaveBeenCalled();
-    });
-
-    it('should throw error if database deletion fails', async () => {
-      // Arrange
-      const user = createUserFixture({
-        id: 'user-123',
-        authId: 'auth-123',
-      });
-      userRepository.findOne.mockResolvedValue(user);
-      const flushMock = jest
-        .fn()
-        .mockRejectedValue(new Error('Database error'));
-      entityManager.remove.mockReturnValue({ flush: flushMock });
-
-      // Act & Assert
-      await expect(service.deleteUserByAuthId('auth-123')).rejects.toThrow(
-        'Failed to delete user from database: Database error'
-      );
-      expect(entityManager.remove).toHaveBeenCalledWith(user);
-      expect(flushMock).toHaveBeenCalled();
     });
   });
 });
