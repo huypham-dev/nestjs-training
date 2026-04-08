@@ -1,5 +1,4 @@
 // Dependencies
-import { CacheInterceptor, CacheTTL } from '@nestjs/cache-manager';
 import {
   Body,
   Controller,
@@ -11,14 +10,12 @@ import {
   Patch,
   Query,
   UseGuards,
-  UseInterceptors,
 } from '@nestjs/common';
 import { ApiTags, ApiSecurity } from '@nestjs/swagger';
 
 // Common
 import { ApiDocumentation } from '@/common/decorators';
 import { ZodValidationPipe } from '@/common/pipes';
-import { CacheService } from '@/common/services';
 
 // Services
 import { UserService } from './user.service';
@@ -46,24 +43,17 @@ import { CurrentUser, Roles } from './user.decorators';
 
 // Constants
 import { UserRole } from '@/constants';
-// import { CACHE_KEYS } from '@/constants';
 
 @ApiTags('Users')
 @ApiSecurity('Auth')
 @Controller('users')
 export class UserController {
-  constructor(
-    private readonly userService: UserService,
-    private readonly cacheService: CacheService
-  ) {}
+  constructor(private readonly userService: UserService) {}
 
   // Get all users (admin only)
   @Get()
   @HttpCode(HttpStatus.OK)
   @Roles(UserRole.ADMIN)
-  // @UseInterceptors(CacheInterceptor)
-  // @CacheKey(CACHE_KEYS.USERS_LIST)
-  // @CacheTTL(60000) // 60 seconds
   @ApiDocumentation({
     operation: {
       summary: 'Get all users (Admin only)',
@@ -114,8 +104,6 @@ export class UserController {
   // Get current authenticated user
   @Get('me')
   @HttpCode(HttpStatus.OK)
-  @UseInterceptors(CacheInterceptor)
-  @CacheTTL(30000) // 30 seconds
   @ApiDocumentation({
     operation: {
       summary: 'Get current user profile',
@@ -170,9 +158,6 @@ export class UserController {
   ) {
     const updatedUser = await this.userService.updateUserById(user.id, payload);
 
-    // Invalidate user caches
-    await this.cacheService.invalidateUserCaches(user.id);
-
     return {
       data: updatedUser,
     };
@@ -181,8 +166,6 @@ export class UserController {
   // Get user by ID
   @Get(':id')
   @HttpCode(HttpStatus.OK)
-  @UseInterceptors(CacheInterceptor)
-  @CacheTTL(60000) // 60 seconds
   @ApiDocumentation({
     operation: {
       summary: 'Get user by ID',
@@ -247,7 +230,7 @@ export class UserController {
         type: 'object',
         properties: {
           data: {
-            $ref: '#/components/schemas/User',
+            $ref: '#/components/schemas/UserResponse',
           },
         },
       },
@@ -262,9 +245,6 @@ export class UserController {
       userId,
       payload.status
     );
-
-    // Invalidate user caches
-    await this.cacheService.invalidateUserCaches(userId);
 
     return {
       data: updatedUser,

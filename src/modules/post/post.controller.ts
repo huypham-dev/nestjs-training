@@ -24,13 +24,9 @@ import { ApiTags, ApiSecurity, ApiConsumes } from '@nestjs/swagger';
 // Common
 import { ApiDocumentation } from '@/common/decorators';
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
-import { CacheService } from '@/common/services';
 
 // Modules
-import {
-  PostOwnerGuard,
-  PostOwnerOrAdminGuard,
-} from '@/modules/post/post.guards';
+import { PostOwnerGuard } from '@/modules/post/post.guards';
 import { CurrentUser } from '@/modules/user/user.decorators';
 import { User } from '@/modules/user/user.entity';
 
@@ -61,10 +57,7 @@ const IMAGE_FILE_PIPE = new ParseFilePipe({
 @ApiSecurity('Auth')
 @Controller()
 export class PostController {
-  constructor(
-    private readonly postService: PostService,
-    private readonly cacheService: CacheService
-  ) {}
+  constructor(private readonly postService: PostService) {}
 
   /**
    * GET /posts
@@ -74,9 +67,6 @@ export class PostController {
    */
   @Get('posts')
   @HttpCode(HttpStatus.OK)
-  // @UseInterceptors(CacheInterceptor)
-  // @CacheKey(CACHE_KEYS.POSTS_LIST)
-  // @CacheTTL(60000) // 60 seconds
   @ApiDocumentation({
     operation: {
       summary: 'Get all posts',
@@ -169,9 +159,6 @@ export class PostController {
       image
     );
 
-    // Invalidate post caches
-    await this.cacheService.invalidatePostCaches(undefined, user.id);
-
     return {
       data: this.toPostResponse(post),
     };
@@ -185,8 +172,6 @@ export class PostController {
    */
   @Get('posts/:id')
   @HttpCode(HttpStatus.OK)
-  // @UseInterceptors(CacheInterceptor)
-  // @CacheTTL(60000) // 60 seconds
   @ApiDocumentation({
     operation: {
       summary: 'Get post by ID',
@@ -281,9 +266,6 @@ export class PostController {
       image
     );
 
-    // Invalidate post caches
-    await this.cacheService.invalidatePostCaches(postId, post.user.id);
-
     return {
       data: this.toPostResponse(post),
     };
@@ -292,16 +274,16 @@ export class PostController {
   /**
    * DELETE /posts/:id
    * Delete a post by ID
-   * - Only owner or admin can delete (checked by guard)
+   * - Only owner can delete (checked by guard)
    */
   @Delete('posts/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @UseGuards(PostOwnerOrAdminGuard)
+  @UseGuards(PostOwnerGuard)
   @ApiDocumentation({
     operation: {
       summary: 'Delete post by ID',
       description:
-        'Permanently delete a post. Only the post owner or administrators can delete posts.',
+        'Permanently delete a post. Only the post owner can delete posts.',
     },
     params: [
       {
@@ -314,16 +296,8 @@ export class PostController {
     ],
     response: { status: 204, description: 'Post deleted successfully' },
   })
-  async deletePost(
-    @Param('id', ParseUUIDPipe) postId: string,
-    @CurrentUser() user: User
-  ) {
-    // Get post to know user id before deletion
-    const post = await this.postService.getPostById(postId, user.id);
+  async deletePost(@Param('id', ParseUUIDPipe) postId: string) {
     await this.postService.deletePost(postId);
-
-    // Invalidate post caches
-    await this.cacheService.invalidatePostCaches(postId, post.user.id);
   }
 
   /**
@@ -333,9 +307,7 @@ export class PostController {
    * - Others can only see PUBLISHED posts
    */
   @Get('users/:id/posts')
-  // @HttpCode(HttpStatus.OK)
-  // @UseInterceptors(CacheInterceptor)
-  // @CacheTTL(60000) // 60 seconds
+  @HttpCode(HttpStatus.OK)
   @ApiDocumentation({
     operation: {
       summary: 'Get posts by user ID',
@@ -397,16 +369,6 @@ export class PostController {
     );
 
     return this.formatPaginatedResponse(result);
-  }
-
-  private parseCategoryIds(categoryIds: any): string[] | undefined {
-    if (!categoryIds) return undefined;
-    if (Array.isArray(categoryIds)) return categoryIds;
-    try {
-      return JSON.parse(categoryIds as string);
-    } catch {
-      return undefined;
-    }
   }
 
   private formatPaginatedResponse(result: { data: PostEntity[]; meta?: any }) {

@@ -1,12 +1,5 @@
 // Dependencies
-import { CacheInterceptor, CacheKey, CacheTTL } from '@nestjs/cache-manager';
-import {
-  Controller,
-  Get,
-  HttpCode,
-  HttpStatus,
-  UseInterceptors,
-} from '@nestjs/common';
+import { Controller, Get, HttpCode, HttpStatus, Version } from '@nestjs/common';
 import { ApiTags, ApiSecurity } from '@nestjs/swagger';
 
 // Common
@@ -21,20 +14,15 @@ import { Category } from './category.entity';
 // DTOs
 import { CategoryResponse } from './category.dto';
 
-// Constants
-import { CACHE_KEYS } from '@/constants';
-
 @ApiTags('Categories')
 @ApiSecurity('Auth')
 @Controller('categories')
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
 
+  @Version('1')
   @Get()
   @HttpCode(HttpStatus.OK)
-  @UseInterceptors(CacheInterceptor)
-  @CacheKey(CACHE_KEYS.CATEGORIES_LIST)
-  @CacheTTL(300000) // 5 minutes - categories change less frequently
   @ApiDocumentation({
     operation: {
       summary: 'Get all categories',

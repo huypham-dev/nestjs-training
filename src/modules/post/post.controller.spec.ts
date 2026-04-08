@@ -350,7 +350,6 @@ describe('PostController', () => {
       await controller.deletePost(postId, user);
 
       // Assert
-      expect(postService.getPostById).toHaveBeenCalledWith(postId, user.id);
       expect(postService.deletePost).toHaveBeenCalledWith(postId);
     });
   });

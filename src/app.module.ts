@@ -65,7 +65,7 @@ import { createDatabaseConfig } from '@/config';
     }),
     CacheModule.register({
       isGlobal: true,
-      ttl: 60000, // 60 seconds default TTL
+      ttl: 30000, // 30 seconds default TTL
       max: 100, // Maximum number of items in cache
     }),
     UserModule,
