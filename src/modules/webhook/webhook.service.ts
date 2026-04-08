@@ -54,7 +54,7 @@ export class WebhookService {
         return;
       }
 
-      const { id: authId, locked, image_url } = event.data;
+      const { id: authId, locked, image_url: imageUrl } = event.data;
 
       if (!authId || typeof authId !== 'string') {
         this.logger.warn('User updated event missing authId');
@@ -62,7 +62,7 @@ export class WebhookService {
       }
 
       this.logger.log(
-        `Processing user.updated for authId: ${authId}, locked: ${locked}, avatarUrl: ${image_url}`
+        `Processing user.updated for authId: ${authId}, locked: ${locked}, avatarUrl: ${imageUrl}`
       );
 
       // Find user by authId
@@ -86,8 +86,8 @@ export class WebhookService {
       }
 
       // Update avatarUrl if it has changed
-      if (image_url && user.avatarUrl !== image_url) {
-        updates.avatarUrl = image_url;
+      if (imageUrl && user.avatarUrl !== imageUrl) {
+        updates.avatarUrl = imageUrl;
       }
 
       // Only update if there are changes

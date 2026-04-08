@@ -20,6 +20,20 @@ import { CategoryResponse } from './category.dto';
 export class CategoryController {
   constructor(private readonly categoryService: CategoryService) {}
 
+  /**
+   * Get all categories
+   *
+   * Retrieves a complete list of all available categories in the system.
+   * Categories are used to organize and classify blog posts.
+   * This endpoint is accessible to all authenticated users.
+   * No pagination is applied as the category list is typically small.
+   *
+   * @returns List of all categories with ID, name, and creation timestamp
+   *
+   * @example
+   * GET /categories
+   * Response: { "data": [{ "id": "uuid", "name": "Technology", "createdAt": "2024-01-01T00:00:00.000Z" }] }
+   */
   @Version('1')
   @Get()
   @HttpCode(HttpStatus.OK)
@@ -50,6 +64,17 @@ export class CategoryController {
     };
   }
 
+  /**
+   * Convert category entity to response DTO
+   *
+   * Helper method to transform a category entity into the API response format.
+   * Extracts and formats all necessary fields for the CategoryResponse DTO.
+   * Ensures consistent response structure across all category endpoints.
+   *
+   * @param category - Category entity from database
+   * @returns Formatted category response DTO with ID, name, and ISO timestamp
+   * @private
+   */
   private toCategoryResponse(category: Category): CategoryResponse {
     return {
       id: category.id,

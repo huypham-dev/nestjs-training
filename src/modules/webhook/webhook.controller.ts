@@ -25,6 +25,31 @@ export class WebhookController {
 
   constructor(private readonly webhookService: WebhookService) {}
 
+  /**
+   * Handle Clerk webhook events
+   *
+   * Receives and processes webhook events from Clerk authentication service.
+   * This endpoint is public (no authentication required) as it's called by Clerk.
+   * Webhook authenticity is verified using Svix signature validation.
+   * Handles user lifecycle events: user.created, user.updated, user.deleted.
+   *
+   * The webhook signature is verified to ensure the request genuinely comes from Clerk.
+   * If verification fails or processing throws an error, Clerk will automatically retry.
+   * Uses raw body buffer for signature verification (required by Svix library).
+   *
+   * @param svixId - Unique webhook message ID from Svix headers
+   * @param svixTimestamp - Timestamp when the webhook was sent (for replay attack prevention)
+   * @param svixSignature - Cryptographic signature to verify webhook authenticity
+   * @param req - Request object with raw body buffer for signature verification
+   * @returns Success indicator that webhook was received and processed
+   * @throws UnauthorizedException if webhook signature verification fails
+   * @throws Error if webhook processing fails (triggers Clerk retry)
+   *
+   * @example
+   * POST /webhooks/clerk
+   * Headers: { "svix-id": "msg_xxx", "svix-timestamp": "1234567890", "svix-signature": "v1,sig..." }
+   * Body: { "type": "user.created", "data": {...} }
+   */
   @Public()
   @Post('clerk')
   @HttpCode(HttpStatus.OK)

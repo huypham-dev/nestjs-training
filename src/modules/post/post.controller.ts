@@ -60,10 +60,19 @@ export class PostController {
   constructor(private readonly postService: PostService) {}
 
   /**
-   * GET /posts
-   * Get posts with visibility rules applied
-   * - User can see their own posts (DRAFT + PUBLISHED)
-   * - Can only see PUBLISHED posts from others
+   * Get all posts with visibility rules
+   *
+   * Retrieves a paginated list of posts with smart visibility:
+   * - Users can see ALL their own posts (both DRAFT and PUBLISHED)
+   * - Users can only see PUBLISHED posts from other authors
+   * Supports pagination, search by title, and filtering by status.
+   *
+   * @param user - Current authenticated user from JWT token
+   * @param query - Query parameters (offset, limit, search, status filter)
+   * @returns Paginated list of posts with metadata
+   *
+   * @example
+   * GET /posts?offset=0&limit=10&search=nestjs&status=PUBLISHED
    */
   @Get('posts')
   @HttpCode(HttpStatus.OK)
@@ -114,10 +123,22 @@ export class PostController {
   }
 
   /**
+   * Create a new post
+   *
+   * Creates a new blog post with DRAFT status by default.
+   * The post is automatically associated with the authenticated user as the author.
+   * Optionally supports image upload (JPEG, PNG, WebP formats, max 5MB).
+   * Image will be uploaded to cloud storage and thumbnails will be generated.
+   *
+   * @param user - Current authenticated user (becomes the post author)
+   * @param payload - Post data (title, content, categoryIds)
+   * @param image - Optional image file to upload (validated for size and type)
+   * @returns Newly created post with generated IDs and timestamps
+   *
+   * @example
    * POST /posts
-   * Create a new post (as DRAFT by default)
-   * Requires authentication
-   * Supports image upload
+   * Content-Type: multipart/form-data
+   * Body: { "title": "My Post", "content": "Content here", "categoryIds": ["uuid1", "uuid2"], "image": File }
    */
   @Post('posts')
   @HttpCode(HttpStatus.CREATED)
@@ -165,10 +186,21 @@ export class PostController {
   }
 
   /**
-   * GET /posts/:id
-   * Get a single post by ID
+   * Get post by ID
+   *
+   * Retrieves a single post by its UUID with visibility rules:
    * - Anyone can view PUBLISHED posts
-   * - Only owner can view DRAFT posts
+   * - Only the post owner can view DRAFT posts
+   * Includes full post details with author info and categories.
+   *
+   * @param user - Current authenticated user (for ownership check)
+   * @param postId - UUID of the post to retrieve
+   * @returns Complete post data with author and categories
+   * @throws NotFoundException if post doesn't exist
+   * @throws ForbiddenException if user tries to view another user's DRAFT post
+   *
+   * @example
+   * GET /posts/550e8400-e29b-41d4-a716-446655440000
    */
   @Get('posts/:id')
   @HttpCode(HttpStatus.OK)
@@ -210,10 +242,25 @@ export class PostController {
   }
 
   /**
-   * PATCH /posts/:id
-   * Update a post by ID
-   * - Only owner or admin can update (checked by guard)
-   * - Supports image upload/update
+   * Update post by ID
+   *
+   * Updates an existing post with new data.
+   * Only the post owner can update their posts (enforced by PostOwnerGuard).
+   * All fields are optional - only provided fields will be updated.
+   * Supports updating the post image - uploading a new image replaces the existing one.
+   * Old images are deleted from cloud storage when replaced.
+   *
+   * @param postId - UUID of the post to update
+   * @param payload - Optional update data (title, content, categoryIds, status)
+   * @param image - Optional new image file to replace existing image
+   * @returns Updated post with new data and timestamps
+   * @throws NotFoundException if post doesn't exist
+   * @throws ForbiddenException if user is not the post owner
+   *
+   * @example
+   * PATCH /posts/550e8400-e29b-41d4-a716-446655440000
+   * Content-Type: multipart/form-data
+   * Body: { "title": "Updated Title", "status": "PUBLISHED", "image": File }
    */
   @Patch('posts/:id')
   @HttpCode(HttpStatus.OK)
@@ -272,9 +319,20 @@ export class PostController {
   }
 
   /**
-   * DELETE /posts/:id
-   * Delete a post by ID
-   * - Only owner can delete (checked by guard)
+   * Delete post by ID
+   *
+   * Permanently deletes a post from the database.
+   * Only the post owner can delete their posts (enforced by PostOwnerGuard).
+   * Associated images in cloud storage are also deleted.
+   * This action cannot be undone.
+   *
+   * @param postId - UUID of the post to delete
+   * @returns No content (204 status)
+   * @throws NotFoundException if post doesn't exist
+   * @throws ForbiddenException if user is not the post owner
+   *
+   * @example
+   * DELETE /posts/550e8400-e29b-41d4-a716-446655440000
    */
   @Delete('posts/:id')
   @HttpCode(HttpStatus.NO_CONTENT)
@@ -301,10 +359,22 @@ export class PostController {
   }
 
   /**
-   * GET /users/:id/posts
-   * Get all posts by a specific user
-   * - Owner can see all their posts (DRAFT + PUBLISHED)
-   * - Others can only see PUBLISHED posts
+   * Get posts by user ID
+   *
+   * Retrieves all posts created by a specific user with smart visibility:
+   * - If requesting own posts: returns ALL posts (DRAFT + PUBLISHED)
+   * - If requesting another user's posts: returns only PUBLISHED posts
+   * Supports pagination, search by title, and filtering by status.
+   * Useful for user profile pages showing their blog posts.
+   *
+   * @param currentUser - Current authenticated user making the request
+   * @param userId - UUID of the user whose posts to retrieve
+   * @param query - Query parameters (offset, limit, search, status filter)
+   * @returns Paginated list of posts by the specified user
+   * @throws NotFoundException if user doesn't exist
+   *
+   * @example
+   * GET /users/550e8400-e29b-41d4-a716-446655440000/posts?offset=0&limit=10
    */
   @Get('users/:id/posts')
   @HttpCode(HttpStatus.OK)
@@ -371,6 +441,16 @@ export class PostController {
     return this.formatPaginatedResponse(result);
   }
 
+  /**
+   * Format paginated response
+   *
+   * Helper method to transform database posts into API response format.
+   * Converts post entities to PostResponse DTOs and includes pagination metadata.
+   *
+   * @param result - Service result containing post data and optional metadata
+   * @returns Formatted response with data array and meta object
+   * @private
+   */
   private formatPaginatedResponse(result: { data: PostEntity[]; meta?: any }) {
     return {
       data: result.data.map((post) => this.toPostResponse(post)),
@@ -378,6 +458,17 @@ export class PostController {
     };
   }
 
+  /**
+   * Convert post entity to response DTO
+   *
+   * Helper method to transform a post entity into the API response format.
+   * Extracts and formats all necessary fields including author info and categories.
+   * Ensures consistent response structure across all post endpoints.
+   *
+   * @param post - Post entity from database (must include user and categories relations)
+   * @returns Formatted post response DTO with all required fields
+   * @private
+   */
   private toPostResponse(post: PostEntity): PostResponse {
     return {
       id: post.id,
