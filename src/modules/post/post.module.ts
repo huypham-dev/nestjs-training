@@ -14,7 +14,6 @@ import { PostController } from './post.controller';
 
 // Services
 import { PostService } from './post.service';
-import { StorageService } from '@/shared/services/storage/s3.service';
 
 // Guards
 import { PostOwnerGuard, PostOwnerOrAdminGuard } from './post.guards';
@@ -25,13 +24,7 @@ import { Post } from './post.entity';
 @Module({
   imports: [MikroOrmModule.forFeature([Post, Category, User])],
   controllers: [PostController],
-  providers: [
-    PostService,
-    PostOwnerGuard,
-    PostOwnerOrAdminGuard,
-    CacheService,
-    StorageService,
-  ],
+  providers: [PostService, PostOwnerGuard, PostOwnerOrAdminGuard, CacheService],
   exports: [PostService],
 })
 export class PostModule {}

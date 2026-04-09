@@ -64,6 +64,34 @@ export const updateUserStatusSchema = z
     description: 'Schema for updating user account status',
   });
 
+export const createUserSchema = z
+  .strictObject({
+    authId: z.string().min(1, 'Auth ID is required').openapi({
+      description: 'Clerk authentication ID',
+      example: 'user_2abc123def456',
+    }),
+    email: z.string().email('Invalid email address').trim().openapi({
+      description: 'User email address',
+      example: 'john.doe@example.com',
+    }),
+    fullName: z
+      .string()
+      .min(1, 'Full name is required')
+      .max(100, 'Full name must be less than 100 characters')
+      .trim()
+      .openapi({
+        description: 'User full name',
+        example: 'John Doe',
+      }),
+    avatarUrl: z.string().url('Invalid URL format').trim().optional().openapi({
+      description: 'User avatar URL',
+      example: 'https://img.clerk.com/avatar.jpg',
+    }),
+  })
+  .openapi('CreateUserData', {
+    description: 'Schema for creating a new user',
+  });
+
 export const userSchema = z
   .object({
     id: z.uuid().openapi({
@@ -110,4 +138,5 @@ export const userSchema = z
 export type UserQueryDto = z.infer<typeof userQuerySchema>;
 export type updateCurrentUserDto = z.infer<typeof updateCurrentUserSchema>;
 export type UpdateUserStatusDto = z.infer<typeof updateUserStatusSchema>;
+export type CreateUserDto = z.infer<typeof createUserSchema>;
 export type UserResponse = z.infer<typeof userSchema>;

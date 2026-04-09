@@ -1,7 +1,7 @@
 // Dependencies
 import { EntityManager, EntityRepository, FilterQuery } from '@mikro-orm/core';
 import { InjectRepository, logger } from '@mikro-orm/nestjs';
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 
 // Common
 import {
@@ -15,7 +15,8 @@ import { Category } from '@/modules/category/category.entity';
 import { User } from '@/modules/user/user.entity';
 
 // Services
-import { StorageService } from '@/shared/services';
+import type { IStorageService } from '@/shared/services';
+import { STORAGE_SERVICE } from '@/shared/services';
 
 // Entities
 import { Post } from './post.entity';
@@ -24,7 +25,6 @@ import { Post } from './post.entity';
 import { PostQueryDto, UpdatePostDto } from './post.dto';
 
 // Constants
-import { IMAGE_SETTINGS } from './post.constants';
 import { PostStatus } from '@/constants';
 
 @Injectable()
@@ -37,7 +37,8 @@ export class PostService {
     @InjectRepository(User)
     private readonly userRepository: EntityRepository<User>,
     private readonly em: EntityManager,
-    private readonly storageService: StorageService
+    @Inject(STORAGE_SERVICE)
+    private readonly storageService: IStorageService
   ) {}
 
   /**
@@ -337,26 +338,9 @@ export class PostService {
   private async processAndUploadImage(
     imageFile: Express.Multer.File
   ): Promise<{ imageUrl: string; imageThumbnailUrl: string }> {
-    // Process original image
-    const processedOriginal = await this.storageService.processImage(
+    // Upload both original and thumbnail (thumbnail is generated automatically)
+    const uploadResult = await this.storageService.uploadImageWithThumbnail(
       imageFile.buffer,
-      IMAGE_SETTINGS.JPEG_QUALITY
-    );
-
-    // Generate thumbnail
-    const thumbnail = await this.storageService.generateThumbnail(
-      imageFile.buffer,
-      {
-        width: IMAGE_SETTINGS.THUMBNAIL_WIDTH,
-        height: IMAGE_SETTINGS.THUMBNAIL_HEIGHT,
-        quality: IMAGE_SETTINGS.JPEG_QUALITY,
-      }
-    );
-
-    // Upload to S3
-    const uploadResult = await this.storageService.uploadImage(
-      processedOriginal.buffer,
-      thumbnail.buffer,
       imageFile.originalname
     );
 

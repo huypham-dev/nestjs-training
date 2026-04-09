@@ -1,5 +1,4 @@
 // Dependencies
-import { clerkMiddleware } from '@clerk/express';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
 import { PostgreSqlDriver } from '@mikro-orm/postgresql';
 import { CacheModule } from '@nestjs/cache-manager';
@@ -16,7 +15,7 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 // Common
 import { GlobalExceptionFilter } from '@/common/filters';
 import { LoggingInterceptor } from '@/common/interceptors';
-import { AuthMiddleware } from '@/common/middlewares';
+import { AuthMiddleware, AuthProviderMiddleware } from '@/common/middlewares';
 import { CacheService } from '@/common/services';
 
 // Modules
@@ -103,15 +102,7 @@ export class AppModule implements NestModule {
 
   configure(consumer: MiddlewareConsumer) {
     consumer
-      .apply(
-        clerkMiddleware({
-          publishableKey: this.configService.get<string>(
-            'CLERK_PUBLISHABLE_KEY'
-          ),
-          secretKey: this.configService.get<string>('CLERK_SECRET_KEY'),
-        }),
-        AuthMiddleware
-      )
+      .apply(AuthProviderMiddleware, AuthMiddleware)
       .exclude(
         { path: 'webhooks/clerk', method: RequestMethod.POST },
         { path: 'webhooks/(.*)', method: RequestMethod.ALL }

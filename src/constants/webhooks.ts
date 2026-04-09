@@ -3,5 +3,6 @@
  * @see https://clerk.com/docs/integrations/webhooks/overview
  */
 export const CLERK_WEBHOOK_EVENTS = {
+  USER_CREATED: 'user.created',
   USER_UPDATED: 'user.updated',
 } as const;

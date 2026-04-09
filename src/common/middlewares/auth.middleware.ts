@@ -10,8 +10,11 @@ import { AuthenticationException } from '@/common/exceptions';
 import { UserService } from '@/modules/user/user.service';
 
 /**
- * Extract Clerk auth info, sync user with database, and attach to request
- * Creates user if doesn't exist
+ * Extract Clerk auth info and attach user from database to request
+ *
+ * Note: User creation is now handled by the user.created webhook event.
+ * This middleware only retrieves existing users from the database.
+ * If a user doesn't exist, it throws an authentication exception.
  */
 @Injectable()
 export class AuthMiddleware implements NestMiddleware {
@@ -24,7 +27,7 @@ export class AuthMiddleware implements NestMiddleware {
       throw new AuthenticationException();
     }
 
-    const { email, fullName, avatarUrl } = auth.sessionClaims || {};
+    const { email, fullName } = auth.sessionClaims || {};
 
     // Attach auth info to request
     req.auth = {
@@ -34,13 +37,14 @@ export class AuthMiddleware implements NestMiddleware {
     };
 
     try {
-      // Sync user with database
-      const user = await this.userService.syncUser(
-        auth.userId,
-        email as string,
-        fullName as string,
-        avatarUrl as string
-      );
+      // Get user from database (must exist from webhook creation)
+      const user = await this.userService.getUserByAuthId(auth.userId);
+
+      if (!user) {
+        throw new AuthenticationException(
+          'User not found. Please contact support.'
+        );
+      }
 
       req.user = user;
       next();

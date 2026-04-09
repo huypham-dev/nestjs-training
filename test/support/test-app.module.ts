@@ -23,9 +23,7 @@ import { CacheService } from '@/common/services';
 import { CategoryModule } from '@/modules/category';
 import { PostModule } from '@/modules/post';
 import { UserModule } from '@/modules/user';
-
-// Services
-import { ClerkService } from '@/shared/services/clerk/clerk.service';
+import { AUTH_SERVICE } from '@/shared/services/auth/auth-service.interface';
 
 // Other
 import { MockAuthMiddleware } from './mock-auth.middleware';
@@ -77,12 +75,10 @@ import { createDatabaseConfig } from '@/config';
   providers: [
     CacheService,
     {
-      provide: ClerkService,
+      provide: AUTH_SERVICE,
       useValue: {
         lockUser: jest.fn().mockResolvedValue(undefined),
         unlockUser: jest.fn().mockResolvedValue(undefined),
-        updateUser: jest.fn().mockResolvedValue(undefined),
-        deleteUser: jest.fn().mockResolvedValue(undefined),
         verifyWebhook: jest.fn().mockImplementation(() => ({
           type: 'user.updated',
           data: {},
@@ -106,7 +102,7 @@ import { createDatabaseConfig } from '@/config';
       useClass: RolesGuard,
     },
   ],
-  exports: [UserModule, CategoryModule, PostModule, ClerkService],
+  exports: [UserModule, CategoryModule, PostModule, AUTH_SERVICE],
 })
 export class TestAppModule implements NestModule {
   configure(consumer: MiddlewareConsumer) {

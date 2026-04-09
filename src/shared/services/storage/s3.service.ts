@@ -9,36 +9,25 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import sharp from 'sharp';
 
-export interface UploadResult {
-  key: string;
-  url: string;
-  bucket: string;
-}
+// Interfaces
+import type {
+  IStorageService,
+  UploadResult,
+  UploadOptions,
+  ProcessedImage,
+  ThumbnailOptions,
+} from './storage.interface';
 
-export interface UploadOptions {
-  folder?: string;
-  contentType?: string;
-  metadata?: Record<string, string>;
-}
-
-export interface ProcessedImage {
-  buffer: Buffer;
-  width: number;
-  height: number;
-  format: string;
-  size: number;
-}
-
-export interface ThumbnailOptions {
-  width?: number;
-  height?: number;
-  quality?: number;
-  fit?: keyof sharp.FitEnum;
-}
-
+/**
+ * S3 Storage Service Implementation
+ *
+ * Implements IStorageService using AWS S3 as the storage backend.
+ * To switch to another provider (Cloudinary, GCS, etc.), create a new
+ * implementation of IStorageService and update the provider in shared.module.ts
+ */
 @Injectable()
-export class StorageService {
-  private readonly logger = new Logger(StorageService.name);
+export class S3StorageService implements IStorageService {
+  private readonly logger = new Logger(S3StorageService.name);
   private readonly s3Client: S3Client;
   private readonly bucket: string;
   private readonly region: string;
@@ -112,8 +101,45 @@ export class StorageService {
   }
 
   /**
-   * Upload an image (original + thumbnail)
-   * Returns both URLs
+   * Upload an image with automatic thumbnail generation
+   * Implements IStorageService interface
+   */
+  async uploadImageWithThumbnail(
+    buffer: Buffer,
+    filename: string,
+    options: UploadOptions = {}
+  ): Promise<{ original: UploadResult; thumbnail: UploadResult }> {
+    try {
+      const uniqueFilename = this.generateUniqueFilename(filename);
+      const folder = options.folder || 'posts/images';
+
+      // Generate thumbnail
+      const thumbnailData = await this.generateThumbnail(buffer);
+
+      // Upload both original and thumbnail in parallel
+      const [original, thumbnail] = await Promise.all([
+        this.uploadFile(buffer, uniqueFilename, {
+          ...options,
+          folder: `${folder}/original`,
+          contentType: 'image/jpeg',
+        }),
+        this.uploadFile(thumbnailData.buffer, `thumb-${uniqueFilename}`, {
+          ...options,
+          folder: `${folder}/thumbnails`,
+          contentType: 'image/jpeg',
+        }),
+      ]);
+
+      return { original, thumbnail };
+    } catch (error) {
+      this.logger.error('Failed to upload image and thumbnail:', error);
+      throw new Error('Failed to upload images');
+    }
+  }
+
+  /**
+   * Upload an image (original + thumbnail) - Legacy method
+   * @deprecated Use uploadImageWithThumbnail instead
    */
   async uploadImage(
     originalBuffer: Buffer,
@@ -122,8 +148,7 @@ export class StorageService {
     folder: string = 'posts/images'
   ): Promise<{ original: UploadResult; thumbnail: UploadResult }> {
     try {
-      const timestamp = Date.now();
-      const uniqueFilename = `${timestamp}-${filename}`;
+      const uniqueFilename = this.generateUniqueFilename(filename);
       const [original, thumbnail] = await Promise.all([
         this.uploadFile(originalBuffer, uniqueFilename, {
           folder: `${folder}/original`,
@@ -140,6 +165,17 @@ export class StorageService {
       this.logger.error('Failed to upload image and thumbnail:', error);
       throw new Error('Failed to upload images');
     }
+  }
+
+  /**
+   * Generate unique filename with timestamp and random string
+   */
+  generateUniqueFilename(originalFilename: string): string {
+    const timestamp = Date.now();
+    const randomString = Math.random().toString(36).substring(2, 8);
+    const extension = originalFilename.split('.').pop() || 'jpg';
+    const nameWithoutExt = originalFilename.replace(/\.[^/.]+$/, '');
+    return `${timestamp}-${randomString}-${nameWithoutExt}.${extension}`;
   }
 
   /**
@@ -208,8 +244,10 @@ export class StorageService {
    */
   async processImage(
     buffer: Buffer,
-    quality: number = this.DEFAULT_QUALITY
+    options: ThumbnailOptions = {}
   ): Promise<ProcessedImage> {
+    const { quality = this.DEFAULT_QUALITY } = options;
+
     try {
       const processed = await sharp(buffer)
         .jpeg({ quality, mozjpeg: true })

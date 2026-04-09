@@ -2,21 +2,21 @@
 import { MikroORM } from '@mikro-orm/core';
 import { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { WebhookEvent } from '@clerk/backend';
 
 // Modules
 import { TestAppModule } from '../support/test-app.module';
 
 // Controllers
 import { WebhookController } from '@/modules/webhook/webhook.controller';
-
-// Services
-import { ClerkService } from '@/shared/services/clerk/clerk.service';
 import { UserService } from '@/modules/user/user.service';
 import { WebhookService } from '@/modules/webhook/webhook.service';
 
 // Decorators & Constants
 import { UserStatus, CLERK_WEBHOOK_EVENTS } from '@/constants';
+import {
+  AUTH_SERVICE,
+  IAuthService,
+} from '@/shared/services/auth/auth-service.interface';
 
 // Helpers
 import { createSupertestApp } from '../helpers/test.helper';
@@ -25,7 +25,7 @@ import { createUserFixture } from '@/test/fixtures/user.fixture';
 describe('WebhookController (e2e)', () => {
   let app: INestApplication;
   let orm: MikroORM;
-  let clerkService: ClerkService;
+  let authService: IAuthService;
   let userService: UserService;
 
   beforeAll(async () => {
@@ -34,7 +34,7 @@ describe('WebhookController (e2e)', () => {
       controllers: [WebhookController],
       providers: [WebhookService],
     })
-      .overrideProvider(ClerkService)
+      .overrideProvider(AUTH_SERVICE)
       .useValue({
         verifyWebhook: jest.fn(),
         lockUser: jest.fn(),
@@ -44,7 +44,7 @@ describe('WebhookController (e2e)', () => {
 
     app = moduleFixture.createNestApplication();
     orm = moduleFixture.get(MikroORM);
-    clerkService = moduleFixture.get(ClerkService);
+    authService = moduleFixture.get(AUTH_SERVICE);
     userService = moduleFixture.get(UserService);
 
     await app.init();
@@ -73,7 +73,7 @@ describe('WebhookController (e2e)', () => {
 
     it('should return 200 OK for a successfully verified webhook', async () => {
       // Return a basic event
-      jest.spyOn(clerkService, 'verifyWebhook').mockReturnValue({
+      jest.spyOn(authService, 'verifyWebhook').mockReturnValue({
         type: 'some.other.event',
         data: {},
       } as any);
@@ -87,7 +87,7 @@ describe('WebhookController (e2e)', () => {
 
       expect(response.status).toBe(200);
       expect(response.body).toEqual({ data: { received: true } });
-      expect(clerkService.verifyWebhook).toHaveBeenCalled();
+      expect(authService.verifyWebhook).toHaveBeenCalled();
     });
 
     it('should process user.updated event and update user status in DB', async () => {
@@ -100,18 +100,18 @@ describe('WebhookController (e2e)', () => {
         .spyOn(userService, 'getUserByAuthId')
         .mockResolvedValue(fakeUser as any);
       const updateSpy = jest
-        .spyOn(userService, 'updateUserFromWebhook')
+        .spyOn(userService, 'updateUser')
         .mockResolvedValue(undefined as any);
 
-      // Tell clerk verification to return a simulated clerk payload where an account is locked
-      jest.spyOn(clerkService, 'verifyWebhook').mockReturnValue({
+      // Tell auth verification to return a simulated webhook payload where an account is locked
+      jest.spyOn(authService, 'verifyWebhook').mockReturnValue({
         type: CLERK_WEBHOOK_EVENTS.USER_UPDATED,
         data: {
           id: 'clerk_auth_123',
           locked: true,
-          image_url: 'https://img.clerk.com/avatar.jpg',
+          imageUrl: 'https://img.clerk.com/avatar.jpg',
         },
-      } as WebhookEvent);
+      });
 
       const response = await createSupertestApp(app)
         .post('/webhooks/clerk')
@@ -134,8 +134,8 @@ describe('WebhookController (e2e)', () => {
     });
 
     it('should return 500 error if signature verification fails to allow Clerk retry', async () => {
-      // Simulate clerk service rejecting the webhook due to invalid signature
-      jest.spyOn(clerkService, 'verifyWebhook').mockImplementation(() => {
+      // Simulate auth service rejecting the webhook due to invalid signature
+      jest.spyOn(authService, 'verifyWebhook').mockImplementation(() => {
         throw new Error('Invalid signature');
       });
 

@@ -10,7 +10,6 @@ import { UserController } from './user.controller';
 
 // Services
 import { UserService } from './user.service';
-import { ClerkService } from '@/shared/services/clerk/clerk.service';
 
 // Guards
 import { PreventSameUserActionGuard } from './user.guards';
@@ -21,12 +20,7 @@ import { User } from './user.entity';
 @Module({
   imports: [MikroOrmModule.forFeature([User])],
   controllers: [UserController],
-  providers: [
-    UserService,
-    PreventSameUserActionGuard,
-    CacheService,
-    ClerkService,
-  ],
+  providers: [UserService, PreventSameUserActionGuard, CacheService],
   exports: [UserService],
 })
 export class UserModule {}

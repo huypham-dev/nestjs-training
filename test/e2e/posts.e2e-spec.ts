@@ -25,9 +25,7 @@ import { UserRole, UserStatus, PostStatus } from '@/constants';
 // Other
 import { TEST_USERS } from '../helpers/auth.helper';
 import { createSupertestApp } from '../helpers/test.helper';
-
-// Services
-import { ClerkService } from '@/shared/services/clerk/clerk.service';
+import { AUTH_SERVICE } from '@/shared/services/auth/auth-service.interface';
 
 describe('Post API (e2e)', () => {
   let app: INestApplication;
@@ -44,11 +42,10 @@ describe('Post API (e2e)', () => {
     })
       .overrideInterceptor(CacheInterceptor)
       .useClass(NoOpCacheInterceptor)
-      .overrideProvider(ClerkService)
+      .overrideProvider(AUTH_SERVICE)
       .useValue({
         lockUser: jest.fn().mockResolvedValue(undefined),
         unlockUser: jest.fn().mockResolvedValue(undefined),
-        updateUser: jest.fn().mockResolvedValue(undefined),
         verifyWebhook: jest.fn().mockImplementation(() => ({
           type: 'user.updated',
           data: {},

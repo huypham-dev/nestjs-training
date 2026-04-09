@@ -1,17 +1,21 @@
 // Dependencies
 import { EntityManager, EntityRepository } from '@mikro-orm/core';
 import { InjectRepository } from '@mikro-orm/nestjs';
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 
 // Common
 import { ResourceNotFoundException } from '@/common/exceptions';
 import { SuccessResponse, QueryOptions } from '@/common/interfaces';
 
 // Services
-import { ClerkService } from '@/shared/services';
+import type { IAuthService } from '@/shared/services';
+import { AUTH_SERVICE } from '@/shared/services';
 
 // Entities
 import { User } from './user.entity';
+
+// DTOs
+import type { CreateUserDto } from './user.dto';
 
 // Constants
 import { UserStatus } from '@/constants';
@@ -24,7 +28,8 @@ export class UserService {
     @InjectRepository(User)
     private readonly userRepository: EntityRepository<User>,
     private readonly em: EntityManager,
-    private readonly clerkService: ClerkService
+    @Inject(AUTH_SERVICE)
+    private readonly authService: IAuthService
   ) {}
 
   async getAllUsers(
@@ -88,18 +93,18 @@ export class UserService {
     const previousStatus = user.status;
     user.status = status;
 
-    // Lock/Unlock user on Clerk based on status
+    // Lock/Unlock user on auth provider based on status
     try {
       if (status === UserStatus.INACTIVE) {
-        await this.clerkService.lockUser(user.authId);
+        await this.authService.lockUser(user.authId);
       } else if (status === UserStatus.ACTIVE) {
-        await this.clerkService.unlockUser(user.authId);
+        await this.authService.unlockUser(user.authId);
       }
 
-      // Flush database change after Clerk operation to ensure consistency
+      // Flush database change after auth provider operation to ensure consistency
       await this.em.flush();
     } catch (error) {
-      // Rollback database change if Clerk operation fails
+      // Rollback database change if auth provider operation fails
       user.status = previousStatus;
       await this.em.flush();
       throw error;
@@ -113,8 +118,18 @@ export class UserService {
     return this.userRepository.findOne({ authId });
   }
 
-  // Generic method to update user fields from webhook (without calling Clerk API)
-  async updateUserFromWebhook(
+  /**
+   * Update user fields
+   *
+   * Generic method to update user fields. Can be used by webhooks, admin updates,
+   * or any other update flow. Does not call external APIs (like Clerk).
+   *
+   * @param id - User's internal system ID
+   * @param updates - Partial user data to update (status, avatarUrl, etc.)
+   * @returns Updated user entity
+   * @throws Error if update fails
+   */
+  async updateUser(
     id: string,
     updates: Partial<Pick<User, 'status' | 'avatarUrl'>>
   ): Promise<User> {
@@ -125,20 +140,66 @@ export class UserService {
     try {
       await this.em.flush();
       this.logger.log(
-        `Successfully updated user ${user.id} from webhook: ${JSON.stringify(updates)}`
+        `Successfully updated user ${user.id}: ${JSON.stringify(updates)}`
       );
     } catch (error) {
-      this.logger.error(
-        `Failed to update user ${user.id} from webhook:`,
-        error
-      );
-      // Re-throw error so webhook can be retried by Clerk
+      this.logger.error(`Failed to update user ${user.id}:`, error);
       throw new Error(
-        `Failed to update user from webhook: ${error instanceof Error ? error.message : 'Unknown error'}`
+        `Failed to update user: ${error instanceof Error ? error.message : 'Unknown error'}`
       );
     }
 
     return user;
+  }
+
+  /**
+   * Create a new user
+   *
+   * Creates a new user in the database with the provided authentication and profile information.
+   * Can be used by webhooks, admin creation, or any other user creation flow.
+   *
+   * @param data - User creation data (validated with createUserSchema)
+   * @returns Newly created user entity or existing user if already exists
+   * @throws Error if user creation fails
+   */
+  async createUser(data: CreateUserDto): Promise<User> {
+    try {
+      // Check if user already exists to prevent duplicates
+      const existingUser = await this.userRepository.findOne({
+        authId: data.authId,
+      });
+
+      if (existingUser) {
+        this.logger.warn(
+          `User with authId ${data.authId} already exists, skipping creation`
+        );
+        return existingUser;
+      }
+
+      // Create new user
+      const user = this.userRepository.create({
+        authId: data.authId,
+        email: data.email,
+        fullName: data.fullName,
+        avatarUrl: data.avatarUrl ?? null,
+      });
+
+      await this.em.flush();
+
+      this.logger.log(
+        `Successfully created user: ${user.id} (authId: ${data.authId})`
+      );
+
+      return user;
+    } catch (error) {
+      this.logger.error(
+        `Failed to create user (authId: ${data.authId}):`,
+        error
+      );
+      throw new Error(
+        `Failed to create user: ${error instanceof Error ? error.message : 'Unknown error'}`
+      );
+    }
   }
 
   // Sync user with database and create if doesn't exist
