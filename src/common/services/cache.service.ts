@@ -1,6 +1,6 @@
 // Dependencies
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import type { Cache } from 'cache-manager';
 
 // Constants
@@ -12,32 +12,33 @@ import { CACHE_KEYS } from '@/constants';
  */
 @Injectable()
 export class CacheService {
+  private readonly logger = new Logger(CacheService.name);
+  private cacheKeys = new Set<string>(); // Track all cache keys
+
   constructor(@Inject(CACHE_MANAGER) private cacheManager: Cache) {}
 
   /**
-   * Invalidate all user-related caches
+   * Track a cache key (called by HttpCacheInterceptor)
    */
-  async invalidateUserCaches(userId?: string): Promise<void> {
-    const patterns = [
-      CACHE_KEYS.USERS_LIST, // All users list cache
-      userId ? CACHE_KEYS.USER_DETAIL(userId) : null, // Specific user cache
-      userId ? CACHE_KEYS.USER_POSTS(userId) : null, // User's posts cache
-    ].filter(Boolean) as string[];
+  trackKey(key: string): void {
+    this.cacheKeys.add(key);
+  }
 
-    await this.invalidateByPatterns(patterns);
+  /**
+   * Get all tracked cache keys
+   */
+  getTrackedKeys(): string[] {
+    return Array.from(this.cacheKeys);
   }
 
   /**
    * Invalidate all post-related caches
    */
-  async invalidatePostCaches(postId?: string, userId?: string): Promise<void> {
-    const patterns = [
-      CACHE_KEYS.POSTS_LIST, // All posts list cache
-      postId ? CACHE_KEYS.POST_DETAIL(postId) : null, // Specific post cache
-      userId ? CACHE_KEYS.USER_POSTS(userId) : null, // User's posts cache
-    ].filter(Boolean) as string[];
-
-    await this.invalidateByPatterns(patterns);
+  async invalidatePostCaches(): Promise<void> {
+    // Invalidate HTTP cache created by HttpCacheInterceptor
+    // This clears all cache entries for posts endpoints
+    await this.invalidateHttpCache('/posts');
+    await this.invalidateHttpCache(`/users/`); // For /users/:id/posts
   }
 
   /**
@@ -69,5 +70,28 @@ export class CacheService {
       }
       // For patterns with *, you'd need to track keys or use Redis SCAN
     }
+  }
+
+  /**
+   * Invalidate all HTTP cache entries matching a URL pattern
+   * This clears cache created by HttpCacheInterceptor (format: {url}:user:{userId})
+   *
+   * @param urlPattern - URL pattern to match (e.g., '/posts')
+   */
+  async invalidateHttpCache(urlPattern: string): Promise<void> {
+    const trackedKeys = this.getTrackedKeys();
+    const matchingKeys = trackedKeys.filter((key) => key.includes(urlPattern));
+
+    this.logger.debug(
+      `Invalidating ${matchingKeys.length} cache entries matching pattern: ${urlPattern}`
+    );
+
+    // Delete all matching keys
+    await Promise.all(
+      matchingKeys.map(async (key) => {
+        await this.cacheManager.del(key);
+        this.cacheKeys.delete(key); // Remove from tracked keys
+      })
+    );
   }
 }

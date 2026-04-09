@@ -25,6 +25,8 @@ import { ApiTags, ApiSecurity, ApiConsumes } from '@nestjs/swagger';
 // Common
 import { ApiDocumentation } from '@/common/decorators';
 import { ZodValidationPipe } from '@/common/pipes/zod-validation.pipe';
+import { CacheService } from '@/common/services';
+import { HttpCacheInterceptor } from '@/common/interceptors';
 
 // Modules
 import { PostOwnerGuard } from '@/modules/post/post.guards';
@@ -58,7 +60,10 @@ const IMAGE_FILE_PIPE = new ParseFilePipe({
 @ApiSecurity('Auth')
 @Controller()
 export class PostController {
-  constructor(private readonly postService: PostService) {}
+  constructor(
+    private readonly postService: PostService,
+    private readonly cacheService: CacheService
+  ) {}
 
   /**
    * Get all posts with visibility rules
@@ -78,6 +83,7 @@ export class PostController {
   @Get('posts')
   @Version('1')
   @HttpCode(HttpStatus.OK)
+  @UseInterceptors(HttpCacheInterceptor)
   @ApiDocumentation({
     operation: {
       summary: 'Get all posts',
@@ -183,6 +189,9 @@ export class PostController {
       image
     );
 
+    // Invalidate posts cache after creating new post
+    await this.cacheService.invalidatePostCaches();
+
     return {
       data: this.toPostResponse(post),
     };
@@ -208,6 +217,7 @@ export class PostController {
   @Get('posts/:id')
   @Version('1')
   @HttpCode(HttpStatus.OK)
+  @UseInterceptors(HttpCacheInterceptor)
   @ApiDocumentation({
     operation: {
       summary: 'Get post by ID',
@@ -318,6 +328,9 @@ export class PostController {
       image
     );
 
+    // Invalidate posts cache after updating
+    await this.cacheService.invalidatePostCaches();
+
     return {
       data: this.toPostResponse(post),
     };
@@ -362,6 +375,9 @@ export class PostController {
   })
   async deletePost(@Param('id', ParseUUIDPipe) postId: string) {
     await this.postService.deletePost(postId);
+
+    // Invalidate posts cache after deleting
+    await this.cacheService.invalidatePostCaches();
   }
 
   /**
@@ -385,6 +401,7 @@ export class PostController {
   @Get('users/:id/posts')
   @Version('1')
   @HttpCode(HttpStatus.OK)
+  @UseInterceptors(HttpCacheInterceptor)
   @ApiDocumentation({
     operation: {
       summary: 'Get posts by user ID',
