@@ -3,6 +3,7 @@ import {
   OpenAPIRegistry,
   OpenApiGeneratorV3,
 } from '@asteasolutions/zod-to-openapi';
+import { VersioningType } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { json, urlencoded } from 'express';
@@ -41,12 +42,15 @@ async function bootstrap() {
   // Use Helmet to enhance API security
   app.use(helmet());
 
-  // Set global prefix with versioning from environment variables (e.g., /api/v1)
+  // Set global prefix (e.g., /api)
   const apiBasePath = process.env.API_BASE_PATH || 'api';
-  const apiVersion = process.env.API_VERSION || '1';
-  const globalPrefix = `${apiBasePath}/v${apiVersion}`;
+  app.setGlobalPrefix(apiBasePath);
 
-  app.setGlobalPrefix(globalPrefix);
+  // Enable URI Versioning (e.g., /api/v1/users, /api/v2/users)
+  app.enableVersioning({
+    type: VersioningType.URI,
+    defaultVersion: '1', // Default version if not specified
+  });
 
   // Apply global response interceptor (optional - for standardizing success responses)
   app.useGlobalInterceptors(new ResponseTransformInterceptor());
@@ -100,7 +104,7 @@ async function bootstrap() {
     ...(zodSchemas as any),
   };
 
-  SwaggerModule.setup(`${globalPrefix}/docs`, app, document, {
+  SwaggerModule.setup(`${apiBasePath}/docs`, app, document, {
     customSiteTitle: 'Blog API Documentation',
     swaggerOptions: {
       persistAuthorization: true,
@@ -114,11 +118,12 @@ async function bootstrap() {
   await app.listen(port);
 
   console.log(
-    `🚀 Application is running on: http://localhost:${port}/${globalPrefix}`
+    `🚀 Application is running on: http://localhost:${port}/${apiBasePath}`
   );
   console.log(
-    `📚 Swagger documentation: http://localhost:${port}/${globalPrefix}/docs`
+    `📚 Swagger documentation: http://localhost:${port}/${apiBasePath}/docs`
   );
+  console.log(`📌 API Versioning: URI-based (e.g., /${apiBasePath}/v1/users)`);
 }
 
 void bootstrap();

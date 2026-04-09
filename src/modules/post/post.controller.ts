@@ -17,6 +17,7 @@ import {
   ParseFilePipe,
   MaxFileSizeValidator,
   FileTypeValidator,
+  Version,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ApiTags, ApiSecurity, ApiConsumes } from '@nestjs/swagger';
@@ -75,6 +76,7 @@ export class PostController {
    * GET /posts?offset=0&limit=10&search=nestjs&status=PUBLISHED
    */
   @Get('posts')
+  @Version('1')
   @HttpCode(HttpStatus.OK)
   @ApiDocumentation({
     operation: {
@@ -141,6 +143,7 @@ export class PostController {
    * Body: { "title": "My Post", "content": "Content here", "categoryIds": ["uuid1", "uuid2"], "image": File }
    */
   @Post('posts')
+  @Version('1')
   @HttpCode(HttpStatus.CREATED)
   @UseInterceptors(FileInterceptor('image'))
   @ApiConsumes('multipart/form-data')
@@ -203,6 +206,7 @@ export class PostController {
    * GET /posts/550e8400-e29b-41d4-a716-446655440000
    */
   @Get('posts/:id')
+  @Version('1')
   @HttpCode(HttpStatus.OK)
   @ApiDocumentation({
     operation: {
@@ -263,6 +267,7 @@ export class PostController {
    * Body: { "title": "Updated Title", "status": "PUBLISHED", "image": File }
    */
   @Patch('posts/:id')
+  @Version('1')
   @HttpCode(HttpStatus.OK)
   @UseGuards(PostOwnerGuard)
   @UseInterceptors(FileInterceptor('image'))
@@ -335,6 +340,7 @@ export class PostController {
    * DELETE /posts/550e8400-e29b-41d4-a716-446655440000
    */
   @Delete('posts/:id')
+  @Version('1')
   @HttpCode(HttpStatus.NO_CONTENT)
   @UseGuards(PostOwnerGuard)
   @ApiDocumentation({
@@ -377,6 +383,7 @@ export class PostController {
    * GET /users/550e8400-e29b-41d4-a716-446655440000/posts?offset=0&limit=10
    */
   @Get('users/:id/posts')
+  @Version('1')
   @HttpCode(HttpStatus.OK)
   @ApiDocumentation({
     operation: {

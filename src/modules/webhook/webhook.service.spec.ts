@@ -1,31 +1,36 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { WebhookService } from './webhook.service';
-import { ClerkService } from '@/shared/services';
+import {
+  AUTH_SERVICE,
+  IAuthService,
+} from '@/shared/services/auth/auth-service.interface';
 import { UserService } from '../user/user.service';
 import { UserStatus, CLERK_WEBHOOK_EVENTS } from '@/constants';
 import { WebhookEvent } from '@clerk/backend';
 
 describe('WebhookService', () => {
   let service: WebhookService;
-  let clerkService: jest.Mocked<ClerkService>;
+  let authService: jest.Mocked<IAuthService>;
   let userService: jest.Mocked<UserService>;
 
   beforeEach(async () => {
-    const mockClerkService = {
+    const mockAuthService = {
       verifyWebhook: jest.fn(),
+      lockUser: jest.fn(),
+      unlockUser: jest.fn(),
     };
 
     const mockUserService = {
       getUserByAuthId: jest.fn(),
-      updateUserFromWebhook: jest.fn(),
+      updateUser: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         WebhookService,
         {
-          provide: ClerkService,
-          useValue: mockClerkService,
+          provide: AUTH_SERVICE,
+          useValue: mockAuthService,
         },
         {
           provide: UserService,
@@ -35,7 +40,7 @@ describe('WebhookService', () => {
     }).compile();
 
     service = module.get<WebhookService>(WebhookService);
-    clerkService = module.get(ClerkService);
+    authService = module.get(AUTH_SERVICE);
     userService = module.get(UserService);
   });
 
@@ -52,16 +57,15 @@ describe('WebhookService', () => {
       const mockEvent = {
         type: 'organization.created',
       } as unknown as WebhookEvent;
-      clerkService.verifyWebhook.mockReturnValue(mockEvent);
+      authService.verifyWebhook.mockReturnValue(mockEvent);
 
       await service.verifyAndProcess('payload', 'id', 'timestamp', 'sig');
 
-      expect(clerkService.verifyWebhook).toHaveBeenCalledWith(
-        'payload',
-        'id',
-        'timestamp',
-        'sig'
-      );
+      expect(authService.verifyWebhook).toHaveBeenCalledWith('payload', {
+        'svix-id': 'id',
+        'svix-timestamp': 'timestamp',
+        'svix-signature': 'sig',
+      });
     });
   });
 
@@ -104,7 +108,7 @@ describe('WebhookService', () => {
       await (service as any).handleUserUpdated(mockEvent);
 
       expect(userService.getUserByAuthId).toHaveBeenCalledWith('auth-123');
-      expect(userService.updateUserFromWebhook).not.toHaveBeenCalled();
+      expect(userService.updateUser).not.toHaveBeenCalled();
     });
 
     it('should update user status to INACTIVE if locked is true', async () => {
@@ -122,7 +126,7 @@ describe('WebhookService', () => {
 
       await (service as any).handleUserUpdated(lockedEvent);
 
-      expect(userService.updateUserFromWebhook).toHaveBeenCalledWith('db-123', {
+      expect(userService.updateUser).toHaveBeenCalledWith('db-123', {
         status: UserStatus.INACTIVE,
       });
     });
@@ -137,7 +141,7 @@ describe('WebhookService', () => {
 
       await (service as any).handleUserUpdated(mockEvent);
 
-      expect(userService.updateUserFromWebhook).toHaveBeenCalledWith('db-123', {
+      expect(userService.updateUser).toHaveBeenCalledWith('db-123', {
         avatarUrl: 'http://example.com/avatar.jpg',
       });
     });
@@ -161,7 +165,7 @@ describe('WebhookService', () => {
 
       await (service as any).handleUserUpdated(lockedEvent);
 
-      expect(userService.updateUserFromWebhook).toHaveBeenCalledWith('db-123', {
+      expect(userService.updateUser).toHaveBeenCalledWith('db-123', {
         status: UserStatus.INACTIVE,
         avatarUrl: 'new-locked-avatar.jpg',
       });
@@ -177,7 +181,7 @@ describe('WebhookService', () => {
 
       await (service as any).handleUserUpdated(mockEvent);
 
-      expect(userService.updateUserFromWebhook).not.toHaveBeenCalled();
+      expect(userService.updateUser).not.toHaveBeenCalled();
     });
   });
 });

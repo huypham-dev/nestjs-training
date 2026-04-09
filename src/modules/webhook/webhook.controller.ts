@@ -7,6 +7,7 @@ import {
   Logger,
   Post,
   Req,
+  Version,
 } from '@nestjs/common';
 
 // Common
@@ -52,6 +53,7 @@ export class WebhookController {
    */
   @Public()
   @Post('clerk')
+  @Version('1')
   @HttpCode(HttpStatus.OK)
   async handleClerkWebhook(
     @Headers('svix-id') svixId: string,

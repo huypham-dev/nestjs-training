@@ -8,7 +8,10 @@ import { ResourceNotFoundException } from '@/common/exceptions';
 
 // Services
 import { UserService } from './user.service';
-import { ClerkService } from '@/shared/services';
+import {
+  AUTH_SERVICE,
+  IAuthService,
+} from '@/shared/services/auth/auth-service.interface';
 
 // Entities
 import { User } from './user.entity';
@@ -31,17 +34,18 @@ describe('UserService', () => {
   let service: UserService;
   let userRepository: ReturnType<typeof createMockRepository>;
   let entityManager: ReturnType<typeof createMockEntityManager>;
-  let clerkService: jest.Mocked<ClerkService>;
+  let authService: jest.Mocked<IAuthService>;
 
   beforeEach(async () => {
     // Create mock instances
     userRepository = createMockRepository();
     entityManager = createMockEntityManager();
 
-    // Mock ClerkService
-    const mockClerkService = {
+    // Mock AuthService
+    const mockAuthService = {
       lockUser: jest.fn().mockResolvedValue(undefined),
       unlockUser: jest.fn().mockResolvedValue(undefined),
+      verifyWebhook: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -56,14 +60,14 @@ describe('UserService', () => {
           useValue: entityManager,
         },
         {
-          provide: ClerkService,
-          useValue: mockClerkService,
+          provide: AUTH_SERVICE,
+          useValue: mockAuthService,
         },
       ],
     }).compile();
 
     service = module.get<UserService>(UserService);
-    clerkService = module.get(ClerkService);
+    authService = module.get(AUTH_SERVICE);
   });
 
   afterEach(() => {
@@ -220,7 +224,7 @@ describe('UserService', () => {
       // Assert
       expect(result.status).toBe(UserStatus.INACTIVE);
       expect(entityManager.flush).toHaveBeenCalled();
-      expect(clerkService.lockUser).toHaveBeenCalledWith(user.authId);
+      expect(authService.lockUser).toHaveBeenCalledWith(user.authId);
     });
 
     it('should update user status to ACTIVE', async () => {
@@ -238,7 +242,7 @@ describe('UserService', () => {
       // Assert
       expect(result.status).toBe(UserStatus.ACTIVE);
       expect(entityManager.flush).toHaveBeenCalled();
-      expect(clerkService.unlockUser).toHaveBeenCalledWith(user.authId);
+      expect(authService.unlockUser).toHaveBeenCalledWith(user.authId);
     });
 
     it('should throw ResourceNotFoundException when user not found', async () => {
@@ -256,7 +260,7 @@ describe('UserService', () => {
       const user = createUserFixture({ status: UserStatus.ACTIVE });
       userRepository.findOne.mockResolvedValue(user);
       entityManager.flush.mockResolvedValue(undefined);
-      clerkService.lockUser.mockRejectedValue(
+      authService.lockUser.mockRejectedValue(
         new Error('Failed to lock user on Clerk')
       );
 
@@ -275,7 +279,7 @@ describe('UserService', () => {
       const user = createInactiveUserFixture();
       userRepository.findOne.mockResolvedValue(user);
       entityManager.flush.mockResolvedValue(undefined);
-      clerkService.unlockUser.mockRejectedValue(
+      authService.unlockUser.mockRejectedValue(
         new Error('Failed to unlock user on Clerk')
       );
 
@@ -290,7 +294,7 @@ describe('UserService', () => {
     });
   });
 
-  describe('updateUserFromWebhook', () => {
+  describe('updateUser', () => {
     it('should update user status and avatarUrl from webhook', async () => {
       // Arrange
       const user = createUserFixture({
@@ -302,7 +306,7 @@ describe('UserService', () => {
       entityManager.flush.mockResolvedValue(undefined);
 
       // Act
-      const result = await service.updateUserFromWebhook('user-123', {
+      const result = await service.updateUser('user-123', {
         status: UserStatus.INACTIVE,
         avatarUrl: 'new-avatar.jpg',
       });
@@ -324,7 +328,7 @@ describe('UserService', () => {
       entityManager.flush.mockResolvedValue(undefined);
 
       // Act
-      const result = await service.updateUserFromWebhook('user-123', {
+      const result = await service.updateUser('user-123', {
         status: UserStatus.INACTIVE,
       });
 
@@ -340,7 +344,7 @@ describe('UserService', () => {
 
       // Act & Assert
       await expect(
-        service.updateUserFromWebhook('non-existent-id', {
+        service.updateUser('non-existent-id', {
           status: UserStatus.INACTIVE,
         })
       ).rejects.toThrow(ResourceNotFoundException);
@@ -358,10 +362,10 @@ describe('UserService', () => {
 
       // Act & Assert
       await expect(
-        service.updateUserFromWebhook('user-123', {
+        service.updateUser('user-123', {
           status: UserStatus.INACTIVE,
         })
-      ).rejects.toThrow('Failed to update user from webhook: Database error');
+      ).rejects.toThrow('Failed to update user: Database error');
     });
   });
 

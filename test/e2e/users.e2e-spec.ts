@@ -21,7 +21,7 @@ import { UserRole, UserStatus } from '@/constants';
 
 // Other
 import { TEST_USERS } from '../helpers/auth.helper';
-import { createSupertestApp } from '../helpers/test.helper';
+import { createSupertestApp, setupVersioning } from '../helpers/test.helper';
 
 // Services
 import { AUTH_SERVICE } from '@/shared/services/auth/auth-service.interface';
@@ -48,6 +48,10 @@ describe('User API (e2e)', () => {
       .compile();
 
     app = moduleFixture.createNestApplication();
+
+    // Enable versioning for tests
+    setupVersioning(app);
+
     orm = moduleFixture.get(MikroORM);
 
     await app.init();

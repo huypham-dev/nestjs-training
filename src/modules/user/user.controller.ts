@@ -10,6 +10,7 @@ import {
   Patch,
   Query,
   UseGuards,
+  Version,
 } from '@nestjs/common';
 import { ApiTags, ApiSecurity } from '@nestjs/swagger';
 
@@ -63,6 +64,7 @@ export class UserController {
    * GET /users?offset=0&limit=10
    */
   @Get()
+  @Version('1')
   @HttpCode(HttpStatus.OK)
   @Roles(UserRole.ADMIN)
   @ApiDocumentation({
@@ -125,6 +127,7 @@ export class UserController {
    * GET /users/me
    */
   @Get('me')
+  @Version('1')
   @HttpCode(HttpStatus.OK)
   @ApiDocumentation({
     operation: {
@@ -164,6 +167,7 @@ export class UserController {
    * Body: { "fullName": "John Doe", "email": "john@example.com" }
    */
   @Patch('me')
+  @Version('1')
   @HttpCode(HttpStatus.OK)
   @ApiDocumentation({
     operation: {
@@ -212,6 +216,7 @@ export class UserController {
    * GET /users/550e8400-e29b-41d4-a716-446655440000
    */
   @Get(':id')
+  @Version('1')
   @HttpCode(HttpStatus.OK)
   @ApiDocumentation({
     operation: {
@@ -267,6 +272,7 @@ export class UserController {
    * Body: { "status": "INACTIVE" }
    */
   @Patch(':id/status')
+  @Version('1')
   @HttpCode(HttpStatus.OK)
   @UseGuards(PreventSameUserActionGuard)
   @Roles(UserRole.ADMIN)

@@ -15,7 +15,10 @@ import { User } from '@/modules/user/user.entity';
 
 // Services
 import { PostService } from './post.service';
-import { StorageService } from '@/shared/services/storage/s3.service';
+import {
+  STORAGE_SERVICE,
+  IStorageService,
+} from '@/shared/services/storage/storage.interface';
 
 // Entities
 import { Post } from './post.entity';
@@ -41,7 +44,7 @@ describe('PostService', () => {
   let categoryRepository: ReturnType<typeof createMockRepository>;
   let userRepository: ReturnType<typeof createMockRepository>;
   let entityManager: ReturnType<typeof createMockEntityManager>;
-  let storageService: jest.Mocked<StorageService>;
+  let storageService: jest.Mocked<IStorageService>;
 
   beforeEach(async () => {
     // Create mock instances
@@ -85,7 +88,7 @@ describe('PostService', () => {
           useValue: entityManager,
         },
         {
-          provide: StorageService,
+          provide: STORAGE_SERVICE,
           useValue: storageService,
         },
       ],

@@ -104,8 +104,8 @@ export class AppModule implements NestModule {
     consumer
       .apply(AuthProviderMiddleware, AuthMiddleware)
       .exclude(
-        { path: 'webhooks/clerk', method: RequestMethod.POST },
-        { path: 'webhooks/(.*)', method: RequestMethod.ALL }
+        { path: 'v1/webhooks/clerk', method: RequestMethod.POST },
+        { path: 'v1/webhooks/(.*)', method: RequestMethod.ALL }
       )
       .forRoutes('*');
   }

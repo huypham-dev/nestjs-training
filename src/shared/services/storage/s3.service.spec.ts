@@ -1,5 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { StorageService } from './s3.service';
+import { S3StorageService } from './s3.service';
 import { ConfigService } from '@nestjs/config';
 import {
   S3Client,
@@ -35,8 +35,8 @@ jest.mock('sharp', () => {
   return sharpMock;
 });
 
-describe('StorageService', () => {
-  let service: StorageService;
+describe('S3StorageService', () => {
+  let service: S3StorageService;
   let s3ClientInstance: any;
 
   beforeEach(async () => {
@@ -54,7 +54,7 @@ describe('StorageService', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
-        StorageService,
+        S3StorageService,
         {
           provide: ConfigService,
           useValue: mockConfigService,
@@ -62,7 +62,7 @@ describe('StorageService', () => {
       ],
     }).compile();
 
-    service = module.get<StorageService>(StorageService);
+    service = module.get<S3StorageService>(S3StorageService);
     s3ClientInstance = (S3Client as jest.Mock).mock.results[0].value;
   });
 
