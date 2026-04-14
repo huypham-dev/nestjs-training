@@ -28,6 +28,9 @@ import { Post } from './post.entity';
     BullModule.registerQueue({
       name: 'post-publishing',
     }),
+    BullModule.registerQueue({
+      name: 'image-processing',
+    }),
   ],
   controllers: [PostController],
   providers: [PostService, PostOwnerGuard, PostOwnerOrAdminGuard, CacheService],

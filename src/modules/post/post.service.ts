@@ -42,7 +42,9 @@ export class PostService {
     @Inject(STORAGE_SERVICE)
     private readonly storageService: IStorageService,
     @InjectQueue('post-publishing')
-    private readonly postPublishingQueue: Queue
+    private readonly postPublishingQueue: Queue,
+    @InjectQueue('image-processing')
+    private readonly imageProcessingQueue: Queue
   ) {}
 
   /**
@@ -153,6 +155,7 @@ export class PostService {
   /**
    * Create a new post
    * Post is created as DRAFT by default
+   * Images are processed asynchronously in background queue
    */
   async createPost(
     userId: string,
@@ -162,27 +165,13 @@ export class PostService {
     // Validate categories exist
     const categories = await this.getValidCategories(data.categoryIds);
 
-    // Process image if provided
-    let imageUrl: string | undefined;
-    let imageThumbnailUrl: string | undefined;
-
-    if (imageFile) {
-      try {
-        const imageUrls = await this.processAndUploadImage(imageFile);
-        imageUrl = imageUrls.imageUrl;
-        imageThumbnailUrl = imageUrls.imageThumbnailUrl;
-      } catch (error) {
-        throw new Error(`Failed to process image: ${error.message}`);
-      }
-    }
-
-    // Create post
+    // Create post without images first (for fast response)
     const post = this.postRepository.create({
       title: data.title,
       content: data.content,
       user: userId,
-      imageUrl,
-      imageThumbnailUrl,
+      imageUrl: null,
+      imageThumbnailUrl: null,
     });
 
     // Add categories (if any)
@@ -194,6 +183,21 @@ export class PostService {
 
     // Persist to database
     await this.em.persist(post).flush();
+
+    // Queue image processing if image provided (async - non-blocking)
+    if (imageFile) {
+      try {
+        await this.queueImageProcessing(post.id, imageFile);
+        logger.log(
+          `Post ${post.id} created. Image processing queued (will be available shortly).`
+        );
+      } catch (error) {
+        logger.error(
+          `Failed to queue image processing for post ${post.id}: ${error.message}`
+        );
+        // Don't fail the request - post is already created
+      }
+    }
 
     // Load relations for response
     await this.em.populate(post, ['user', 'categories']);
@@ -248,23 +252,35 @@ export class PostService {
 
     // Handle image update
     if (imageFile) {
+      // Fire-and-forget: delete old images in background (non-blocking)
+      const oldImageUrl = post.imageUrl;
+      const oldThumbnailUrl = post.imageThumbnailUrl;
+
+      if (oldImageUrl || oldThumbnailUrl) {
+        this.storageService
+          .deleteImageByUrls(oldImageUrl, oldThumbnailUrl)
+          .catch((error) => {
+            logger.error(
+              `Failed to delete old images for post ${postId}: ${error.message}`
+            );
+          });
+      }
+
+      // Clear old image URLs immediately
+      post.imageUrl = null;
+      post.imageThumbnailUrl = null;
+
+      // Queue image processing (async - non-blocking)
       try {
-        // Delete old images if they exist
-        if (post.imageUrl || post.imageThumbnailUrl) {
-          await this.storageService.deleteImageByUrls(
-            post.imageUrl,
-            post.imageThumbnailUrl
-          );
-        }
-
-        // Process and upload new image
-        const imageUrls = await this.processAndUploadImage(imageFile);
-
-        post.imageUrl = imageUrls.imageUrl;
-        post.imageThumbnailUrl = imageUrls.imageThumbnailUrl;
+        await this.queueImageProcessing(postId, imageFile);
+        logger.log(
+          `Queued image processing for post ${postId} update. Images will be available shortly.`
+        );
       } catch (error) {
-        console.error('❌ Image upload error:', error);
-        throw new Error(`Failed to update image: ${error.message}`);
+        logger.error(
+          `Failed to queue image processing for post ${postId}: ${error.message}`
+        );
+        // Don't fail the request - other fields will still be updated
       }
     }
 
@@ -347,8 +363,9 @@ export class PostService {
   }
 
   /**
-   * Process and upload image
-   * Generates thumbnail and uploads both to S3
+   * Process and upload image (DEPRECATED - use queueImageProcessing instead)
+   * @deprecated Use async queue-based processing for better performance
+   * Kept for backward compatibility or emergency fallback
    */
   private async processAndUploadImage(
     imageFile: Express.Multer.File
@@ -359,7 +376,7 @@ export class PostService {
       imageFile.originalname
     );
 
-    logger.warn('Image uploaded to S3', uploadResult, {
+    logger.warn('Image uploaded to S3 (SYNC - DEPRECATED)', uploadResult, {
       originalUrl: uploadResult.original.url,
       thumbnailUrl: uploadResult.thumbnail.url,
     });
@@ -368,6 +385,82 @@ export class PostService {
       imageUrl: uploadResult.original.url,
       imageThumbnailUrl: uploadResult.thumbnail.url,
     };
+  }
+
+  /**
+   * Queue image processing job (async alternative)
+   * Creates post immediately and processes image in background
+   * Uses temporary file storage to avoid Redis memory overhead
+   */
+  async queueImageProcessing(
+    postId: string,
+    imageFile: Express.Multer.File
+  ): Promise<void> {
+    const fs = await import('fs/promises');
+    const path = await import('path');
+    const os = await import('os');
+
+    // Create temp directory if not exists
+    const tempDir = path.join(os.tmpdir(), 'post-images');
+    await fs.mkdir(tempDir, { recursive: true });
+
+    // Save to temp file with unique name
+    const timestamp = Date.now();
+    const tempFilename = `${postId}-${timestamp}-${imageFile.originalname}`;
+    const tempFilePath = path.join(tempDir, tempFilename);
+
+    await fs.writeFile(tempFilePath, imageFile.buffer);
+
+    logger.log(`Saved temp image for post ${postId} at: ${tempFilePath}`);
+
+    await this.imageProcessingQueue.add(
+      'process-post-image',
+      {
+        postId,
+        tempFilePath, // Only store file path (not image data)
+        originalFilename: imageFile.originalname,
+        mimetype: imageFile.mimetype,
+      },
+      {
+        attempts: 3,
+        backoff: {
+          type: 'exponential',
+          delay: 2000,
+        },
+        removeOnComplete: true, // Clean up job data after success
+        removeOnFail: false, // Keep failed jobs for debugging
+      }
+    );
+
+    logger.log(
+      `Queued image processing for post ${postId} (temp file: ${tempFilePath})`
+    );
+  }
+
+  /**
+   * Update post with processed images (called by queue processor)
+   */
+  async updatePostImages(
+    postId: string,
+    imageUrl: string,
+    imageThumbnailUrl: string
+  ): Promise<void> {
+    const em = this.em.fork();
+    const postRepo = em.getRepository(Post);
+
+    const post = await postRepo.findOne({ id: postId });
+
+    if (!post) {
+      logger.warn(`Post ${postId} not found when updating images`);
+      return;
+    }
+
+    post.imageUrl = imageUrl;
+    post.imageThumbnailUrl = imageThumbnailUrl;
+
+    await em.flush();
+
+    logger.log(`Updated images for post ${postId}`);
   }
 
   private async getValidCategories(

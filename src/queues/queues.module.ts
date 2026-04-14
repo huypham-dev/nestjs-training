@@ -8,6 +8,7 @@ import { PostModule } from '@/modules/post/post.module';
 
 // Processors
 import { PostPublishingProcessor } from './processors/post-publishing.processor';
+import { ImageProcessingProcessor } from './processors/image-processing.processor';
 
 // Services
 import { MissedScheduleService } from './services/missed-schedule.service';
@@ -27,9 +28,16 @@ import { MissedScheduleService } from './services/missed-schedule.service';
     BullModule.registerQueue({
       name: 'post-publishing',
     }),
+    BullModule.registerQueue({
+      name: 'image-processing',
+    }),
     PostModule,
   ],
-  providers: [PostPublishingProcessor, MissedScheduleService],
+  providers: [
+    PostPublishingProcessor,
+    ImageProcessingProcessor,
+    MissedScheduleService,
+  ],
   exports: [BullModule],
 })
 export class QueuesModule {}
