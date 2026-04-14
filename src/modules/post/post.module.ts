@@ -1,5 +1,6 @@
 // Dependencies
 import { MikroOrmModule } from '@mikro-orm/nestjs';
+import { BullModule } from '@nestjs/bull';
 import { Module } from '@nestjs/common';
 
 // Common
@@ -22,7 +23,12 @@ import { PostOwnerGuard, PostOwnerOrAdminGuard } from './post.guards';
 import { Post } from './post.entity';
 
 @Module({
-  imports: [MikroOrmModule.forFeature([Post, Category, User])],
+  imports: [
+    MikroOrmModule.forFeature([Post, Category, User]),
+    BullModule.registerQueue({
+      name: 'post-publishing',
+    }),
+  ],
   controllers: [PostController],
   providers: [PostService, PostOwnerGuard, PostOwnerOrAdminGuard, CacheService],
   exports: [PostService],

@@ -74,10 +74,12 @@ src/
 | `AWS_S3_BUCKET`         | S3 bucket name        | `your-bucket-name`       |
 | `THROTTLE_TTL`          | Rate limit TTL (ms)   | `900000`                 |
 | `THROTTLE_LIMIT`        | Max requests per TTL  | `100`                    |
+| `REDIS_HOST`            | Redis host            | `localhost`              |
+| `REDIS_PORT`            | Redis port            | `6379`                   |
 
 ## Getting Started
 
-**Prerequisites**: Node.js 18+, PostgreSQL, pnpm
+**Prerequisites**: Node.js 18+, PostgreSQL, Redis, pnpm
 
 ```bash
 # Install dependencies
@@ -86,6 +88,9 @@ pnpm install
 # Setup environment
 cp .env.example .env
 # Edit .env with your values
+
+# Start Redis (required for scheduled posts feature)
+redis-server
 
 # Run migrations
 pnpm migration:up

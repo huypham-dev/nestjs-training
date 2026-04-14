@@ -268,8 +268,38 @@
           "primary": false,
           "nullable": false,
           "default": "'draft'",
-          "enumItems": ["draft", "published"],
+          "enumItems": ["draft", "scheduled", "published", "cancelled"],
           "mappedType": "enum"
+        },
+        "publish_at": {
+          "name": "publish_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 6,
+          "mappedType": "datetime"
+        },
+        "published_at": {
+          "name": "published_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 6,
+          "mappedType": "datetime"
+        },
+        "cancelled_at": {
+          "name": "cancelled_at",
+          "type": "timestamptz",
+          "unsigned": false,
+          "autoincrement": false,
+          "primary": false,
+          "nullable": true,
+          "length": 6,
+          "mappedType": "datetime"
         },
         "image_url": {
           "name": "image_url",

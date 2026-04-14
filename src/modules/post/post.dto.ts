@@ -145,6 +145,14 @@ export const postSchema = z
       description: 'Post publication status',
       example: PostStatus.PUBLISHED,
     }),
+    publishAt: z.string().nullable().optional().openapi({
+      description: 'Scheduled publish timestamp',
+      example: '2024-12-31T23:59:59.000Z',
+    }),
+    publishedAt: z.string().nullable().optional().openapi({
+      description: 'Actual published timestamp',
+      example: '2024-01-15T10:30:00.000Z',
+    }),
     imageUrl: z.url().nullable().optional().openapi({
       description: 'URL of the original post image',
       example:
@@ -193,3 +201,24 @@ export type PostQueryDto = z.infer<typeof postQuerySchema>;
 export type CreatePostDto = z.infer<typeof createPostSchema>;
 export type UpdatePostDto = z.infer<typeof updatePostSchema>;
 export type PostResponse = z.infer<typeof postSchema>;
+
+/**
+ * Schema for scheduling a post
+ */
+export const schedulePostSchema = z
+  .strictObject({
+    publishAt: z.coerce
+      .date()
+      .refine((date) => date > new Date(), {
+        message: 'Publish date must be in the future',
+      })
+      .openapi({
+        description: 'Date and time when the post should be published',
+        example: '2024-12-31T23:59:59.000Z',
+      }),
+  })
+  .openapi('SchedulePostRequest', {
+    description: 'Schema for scheduling a post for future publishing',
+  });
+
+export type SchedulePostDto = z.infer<typeof schedulePostSchema>;

@@ -1,7 +1,9 @@
 // Dependencies
 import { EntityManager, EntityRepository, FilterQuery } from '@mikro-orm/core';
 import { InjectRepository, logger } from '@mikro-orm/nestjs';
+import { InjectQueue } from '@nestjs/bull';
 import { Inject, Injectable } from '@nestjs/common';
+import type { Queue } from 'bull';
 
 // Common
 import {
@@ -38,7 +40,9 @@ export class PostService {
     private readonly userRepository: EntityRepository<User>,
     private readonly em: EntityManager,
     @Inject(STORAGE_SERVICE)
-    private readonly storageService: IStorageService
+    private readonly storageService: IStorageService,
+    @InjectQueue('post-publishing')
+    private readonly postPublishingQueue: Queue
   ) {}
 
   /**
@@ -272,6 +276,17 @@ export class PostService {
       post.content = data.content;
     }
     if (data.status !== undefined) {
+      // If post was SCHEDULED and status is changing, remove job from queue
+      if (
+        (post.status as PostStatus) === PostStatus.SCHEDULED &&
+        data.status !== PostStatus.SCHEDULED
+      ) {
+        await this.removeScheduledJob(postId);
+        logger.log(
+          `Removed scheduled job for post ${postId} due to status change to ${data.status}`
+        );
+      }
+
       post.status = data.status;
     }
 
@@ -463,5 +478,155 @@ export class PostService {
 
     // Fallback (should not reach here)
     return where;
+  }
+
+  /**
+   * Schedule a post for publishing
+   * - Post must not be in PUBLISHED status (can schedule from DRAFT/SCHEDULED/CANCELLED)
+   * - publishAt must be in the future
+   */
+  async schedulePost(postId: string, publishAt: Date): Promise<Post> {
+    const post = await this.postRepository.findOne(
+      { id: postId },
+      { populate: ['user', 'categories'] }
+    );
+
+    if (!post) {
+      throw new ResourceNotFoundException(`Post with ID '${postId}' not found`);
+    }
+
+    // Validate post is valid to schedule
+    if ((post.status as PostStatus) === PostStatus.PUBLISHED) {
+      throw new AuthorizationException(
+        `Post must not be in PUBLISHED status to schedule`
+      );
+    }
+
+    // Validate publishAt is in the future
+    const now = new Date();
+    if (publishAt <= now) {
+      throw new AuthorizationException('Publish time must be in the future');
+    }
+
+    // Update post status and publishAt
+    post.status = PostStatus.SCHEDULED;
+    post.publishAt = publishAt;
+
+    await this.em.flush();
+
+    // Queue the publishing job
+    const delay = publishAt.getTime() - now.getTime();
+    await this.postPublishingQueue.add(
+      'publish-post',
+      { postId },
+      {
+        delay,
+        jobId: `publish-post-${postId}`, // Prevent duplicate jobs
+        removeOnComplete: true,
+        attempts: 3, // Retry up to 3 times if job fails
+        backoff: {
+          type: 'exponential', // Exponential backoff: 1s, 2s, 4s
+          delay: 1000, // Start with 1 second delay
+        },
+      }
+    );
+
+    logger.log(
+      `Scheduled post ${postId} for publishing at ${publishAt.toISOString()} (with 3 retry attempts)`
+    );
+
+    return post;
+  }
+
+  /**
+   * Cancel a scheduled post
+   * - Post must be in SCHEDULED status
+   */
+  async cancelScheduledPost(postId: string): Promise<Post> {
+    const post = await this.postRepository.findOne(
+      { id: postId },
+      { populate: ['user', 'categories'] }
+    );
+
+    if (!post) {
+      throw new ResourceNotFoundException(`Post with ID '${postId}' not found`);
+    }
+
+    // Validate post is in SCHEDULED status
+    if ((post.status as PostStatus) !== PostStatus.SCHEDULED) {
+      throw new AuthorizationException(
+        `Post must be in SCHEDULED status to cancel (current: ${post.status})`
+      );
+    }
+
+    // Update post status
+    post.status = PostStatus.DRAFT;
+    post.cancelledAt = new Date();
+    post.publishAt = null; // Clear publishAt since it's cancelled
+
+    await this.em.flush();
+
+    // Remove the job from queue
+    const jobId = `publish-post-${postId}`;
+    const job = await this.postPublishingQueue.getJob(jobId);
+
+    if (job) {
+      await job.remove();
+      logger.log(`Removed publishing job for post ${postId}`);
+    }
+
+    return post;
+  }
+
+  /**
+   * Publish a scheduled post (called by queue processor)
+   * - Post must be in SCHEDULED status
+   * - Uses forked EntityManager for async context safety
+   */
+  async publishScheduledPost(postId: string): Promise<Post> {
+    // Fork EntityManager for async context (Bull queue processor)
+    const em = this.em.fork();
+    const postRepo = em.getRepository(Post);
+
+    const post = await postRepo.findOne(
+      { id: postId },
+      { populate: ['user', 'categories'] }
+    );
+
+    if (!post) {
+      throw new ResourceNotFoundException(`Post with ID '${postId}' not found`);
+    }
+
+    // Validate post is in SCHEDULED status (idempotency)
+    if ((post.status as PostStatus) !== PostStatus.SCHEDULED) {
+      logger.warn(
+        `Cannot publish post ${postId} - not in SCHEDULED status (current: ${post.status})`
+      );
+      return post;
+    }
+
+    // Update post to PUBLISHED
+    post.status = PostStatus.PUBLISHED;
+    post.publishedAt = new Date();
+
+    await em.flush();
+
+    logger.log(`Published scheduled post ${postId}`);
+
+    return post;
+  }
+
+  /**
+   * Remove scheduled job from queue (helper method)
+   * @private
+   */
+  private async removeScheduledJob(postId: string): Promise<void> {
+    const jobId = `publish-post-${postId}`;
+    const job = await this.postPublishingQueue.getJob(jobId);
+
+    if (job) {
+      await job.remove();
+      logger.log(`Removed scheduled job ${jobId} from queue`);
+    }
   }
 }

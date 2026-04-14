@@ -33,6 +33,15 @@ export class Post extends BaseEntity {
   @Enum({ items: () => PostStatus, fieldName: 'status' })
   status: PostStatus & Opt = PostStatus.DRAFT;
 
+  @Property({ type: 'timestamptz', fieldName: 'publish_at', nullable: true })
+  publishAt?: Date | null;
+
+  @Property({ type: 'timestamptz', fieldName: 'published_at', nullable: true })
+  publishedAt?: Date | null;
+
+  @Property({ type: 'timestamptz', fieldName: 'cancelled_at', nullable: true })
+  cancelledAt?: Date | null;
+
   @Property({ type: 'string', fieldName: 'image_url', nullable: true })
   imageUrl?: string | null;
 

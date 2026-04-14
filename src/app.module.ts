@@ -24,6 +24,7 @@ import { PostModule } from '@/modules/post';
 import { UserModule } from '@/modules/user';
 import { WebhookModule } from '@/modules/webhook';
 import { SharedModule } from '@/shared/shared.module';
+import { QueuesModule } from '@/queues/queues.module';
 
 // Guards
 import { ActiveUserGuard, RolesGuard } from './common/guards';
@@ -67,6 +68,7 @@ import { createDatabaseConfig } from '@/config';
       ttl: 30000, // 30 seconds default TTL
       max: 100, // Maximum number of items in cache
     }),
+    QueuesModule,
     UserModule,
     CategoryModule,
     PostModule,

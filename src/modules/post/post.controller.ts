@@ -44,8 +44,14 @@ import {
   postQuerySchema,
   createPostSchema,
   updatePostSchema,
+  schedulePostSchema,
 } from './post.dto';
-import type { CreatePostDto, PostQueryDto, UpdatePostDto } from './post.dto';
+import type {
+  CreatePostDto,
+  PostQueryDto,
+  UpdatePostDto,
+  SchedulePostDto,
+} from './post.dto';
 import type { PostResponse } from './post.dto';
 
 const IMAGE_FILE_PIPE = new ParseFilePipe({
@@ -499,6 +505,8 @@ export class PostController {
       title: post.title,
       content: post.content,
       status: post.status,
+      publishAt: post.publishAt?.toISOString() ?? null,
+      publishedAt: post.publishedAt?.toISOString() ?? null,
       imageUrl: post.imageUrl,
       imageThumbnailUrl: post.imageThumbnailUrl,
       author: {
@@ -513,5 +521,69 @@ export class PostController {
       createdAt: post.createdAt.toISOString(),
       updatedAt: post.updatedAt.toISOString(),
     };
+  }
+
+  /**
+   * Schedule a post for future publishing
+   *
+   * @param postId - Post ID to schedule
+   * @param data - Schedule data containing publishAt timestamp
+   * @returns Scheduled post entity
+   */
+  @Post('posts/:id/schedule')
+  @Version('1')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(PostOwnerGuard)
+  @ApiDocumentation({
+    operation: {
+      summary: 'Schedule a post for publishing',
+      description:
+        'Schedule a DRAFT post for automatic publishing at a future date. Post must be in DRAFT status and publishAt must be in the future.',
+    },
+    response: {
+      status: 200,
+      description: 'Successfully scheduled post for publishing',
+    },
+  })
+  async schedulePost(
+    @Param('id', ParseUUIDPipe) postId: string,
+    @Body(new ZodValidationPipe(schedulePostSchema)) data: SchedulePostDto
+  ) {
+    const post = await this.postService.schedulePost(postId, data.publishAt);
+
+    // Invalidate caches
+    await this.cacheService.invalidatePostCaches();
+
+    return this.toPostResponse(post);
+  }
+
+  /**
+   * Cancel a scheduled post
+   *
+   * @param postId - Post ID to cancel
+   * @returns Cancelled post entity
+   */
+  @Post('posts/:id/cancel-schedule')
+  @Version('1')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(PostOwnerGuard)
+  @ApiDocumentation({
+    operation: {
+      summary: 'Cancel a scheduled post',
+      description:
+        'Cancel a scheduled post. Post must be in SCHEDULED status. Removes the post from the publishing queue and updates status to CANCELLED.',
+    },
+    response: {
+      status: 200,
+      description: 'Successfully cancelled scheduled post',
+    },
+  })
+  async cancelScheduledPost(@Param('id', ParseUUIDPipe) postId: string) {
+    const post = await this.postService.cancelScheduledPost(postId);
+
+    // Invalidate caches
+    await this.cacheService.invalidatePostCaches();
+
+    return this.toPostResponse(post);
   }
 }
