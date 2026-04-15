@@ -49,4 +49,12 @@ export interface IAuthService {
    * @param authId - User's authentication ID from provider
    */
   unlockUser(authId: string): Promise<void>;
+
+  /**
+   * Verify a JWT token from auth provider
+   * @param token - JWT token (with or without 'Bearer ' prefix)
+   * @returns authId (sub claim) of the verified token
+   * @throws Error if token is invalid or expired
+   */
+  verifyToken(token: string): Promise<string>;
 }

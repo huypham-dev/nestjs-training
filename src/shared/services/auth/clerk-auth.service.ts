@@ -1,5 +1,5 @@
 // Dependencies
-import { createClerkClient, WebhookEvent } from '@clerk/backend';
+import { createClerkClient, verifyToken, WebhookEvent } from '@clerk/backend';
 import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Webhook } from 'svix';
@@ -91,6 +91,31 @@ export class ClerkAuthService implements IAuthService {
     } catch (error) {
       this.logger.error(`Failed to unlock Clerk user ${authId}:`, error);
       throw new Error('Failed to unlock user on Clerk');
+    }
+  }
+
+  /**
+   * Verify a Clerk JWT session token
+   * @param token - JWT token (with or without 'Bearer ' prefix)
+   * @returns authId (sub claim) of the verified token
+   * @throws Error if token is invalid or expired
+   */
+  async verifyToken(token: string): Promise<string> {
+    try {
+      const rawToken = token.startsWith('Bearer ') ? token.slice(7) : token;
+
+      const payload = await verifyToken(rawToken, {
+        secretKey: this.configService.get<string>('CLERK_SECRET_KEY'),
+      });
+
+      if (!payload.sub) {
+        throw new Error('Token missing sub claim');
+      }
+
+      return payload.sub;
+    } catch (error) {
+      this.logger.error('Token verification failed:', error);
+      throw new Error('Invalid or expired token');
     }
   }
 }
