@@ -5,10 +5,10 @@ import { EntityManager } from '@mikro-orm/core';
 import type { Queue } from 'bull';
 
 // Entities
-import { Post } from '@/modules/post/post.entity';
+import { Post } from '../post.entity';
 
 // Constants
-import { PostStatus } from '@/constants';
+import { PostStatus, QUEUE_NAMES } from '@/constants';
 
 @Injectable()
 export class MissedScheduleService implements OnModuleInit {
@@ -16,7 +16,7 @@ export class MissedScheduleService implements OnModuleInit {
 
   constructor(
     private readonly em: EntityManager,
-    @InjectQueue('post-publishing')
+    @InjectQueue(QUEUE_NAMES.POST_PUBLISHING)
     private readonly postPublishingQueue: Queue
   ) {}
 

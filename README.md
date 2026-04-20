@@ -4,7 +4,7 @@ RESTful API built with NestJS. Features modular architecture, JWT authentication
 
 ## Tech Stack
 
-- **Runtime**: Node.js 18+
+- **Runtime**: Node.js 22+
 - **Language**: TypeScript
 - **Framework**: Nest.js
 - **Database**: PostgreSQL
@@ -13,6 +13,7 @@ RESTful API built with NestJS. Features modular architecture, JWT authentication
 - **Testing**: Jest, Postman
 - **Documentation**: Swagger
 - **Package Manager**: pnpm
+- **Containerization**: Docker, Docker Compose
 
 ## Folder Structure
 
@@ -79,27 +80,50 @@ src/
 
 ## Getting Started
 
-**Prerequisites**: Node.js 18+, PostgreSQL, Redis, pnpm
+### Prerequisites
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/)
+- A `.env` file (copy from `.env.example` and fill in your values)
+
+### Development (with hot reload)
 
 ```bash
-# Install dependencies
-pnpm install
+# 1. Clone the repo
+git clone <repo-url>
+cd nestjs-training
 
-# Setup environment
+# 2. Setup environment
 cp .env.example .env
 # Edit .env with your values
 
-# Start Redis (required for scheduled posts feature)
-redis-server
+# 3. Start all services (app + postgres + redis)
+docker compose --profile dev up
 
-# Run migrations
+# 4. Run migrations (first time only)
 pnpm migration:up
 
-# Start development server
-pnpm start:dev
+# 5. (Optional) Seed the database
+pnpm seeder:run
 ```
 
-Server runs at `http://localhost:8000`
+App runs at `http://localhost:8000`  
+Swagger docs at `http://localhost:8000/api/docs`
+
+> **Note:** Migrations and seeders run locally using `pnpm`, connecting to the PostgreSQL container via `localhost:5432`.
+
+### Production
+
+```bash
+docker compose --profile prod up -d
+```
+
+### Stop all services
+
+```bash
+docker compose --profile dev down
+# or
+docker compose --profile prod down
+```
 
 ## Database & Migrations
 

@@ -1,0 +1,113 @@
+services:
+  # ================================
+  # Application (Production)
+  # ================================
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: blog-api
+    ports:
+      - '${PORT:-8000}:8000'
+    env_file:
+      - .env
+    environment:
+      DB_HOST: postgres
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: nestjs_blog_api
+      REDIS_HOST: redis
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - blog-network
+    profiles:
+      - prod
+    restart: unless-stopped
+
+  # ================================
+  # Application (Development - hot reload)
+  # ================================
+  app-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: blog-api-dev
+    command: pnpm start:dev
+    ports:
+      - '${PORT:-8000}:8000'
+    env_file:
+      - .env
+    environment:
+      DB_HOST: postgres
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_NAME: nestjs_blog_api
+      REDIS_HOST: redis
+      NODE_ENV: development
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - blog-network
+    profiles:
+      - dev
+
+  # ================================
+  # PostgreSQL
+  # ================================
+  postgres:
+    image: postgres:17-alpine
+    container_name: blog-postgres
+    ports:
+      - '${DATABASE_PORT:-5432}:5432'
+    environment:
+      POSTGRES_DB: nestjs_blog_api
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d nestjs_blog_api']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - blog-network
+    restart: unless-stopped
+
+  # ================================
+  # Redis
+  # ================================
+  redis:
+    image: redis:7-alpine
+    container_name: blog-redis
+    ports:
+      - '${REDIS_PORT:-6379}:6379'
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - blog-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  blog-network:
+    driver: bridge

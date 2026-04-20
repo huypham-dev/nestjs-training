@@ -6,6 +6,9 @@ import { Module } from '@nestjs/common';
 // Common
 import { CacheService } from '@/common/services';
 
+// Constants
+import { QUEUE_NAMES } from '@/constants';
+
 // Modules
 import { Category } from '@/modules/category/category.entity';
 import { User } from '@/modules/user/user.entity';
@@ -26,10 +29,10 @@ import { Post } from './post.entity';
   imports: [
     MikroOrmModule.forFeature([Post, Category, User]),
     BullModule.registerQueue({
-      name: 'post-publishing',
+      name: QUEUE_NAMES.POST_PUBLISHING,
     }),
     BullModule.registerQueue({
-      name: 'image-processing',
+      name: QUEUE_NAMES.IMAGE_PROCESSING,
     }),
   ],
   controllers: [PostController],

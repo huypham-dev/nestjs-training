@@ -138,36 +138,6 @@ export class S3StorageService implements IStorageService {
   }
 
   /**
-   * Upload an image (original + thumbnail) - Legacy method
-   * @deprecated Use uploadImageWithThumbnail instead
-   */
-  async uploadImage(
-    originalBuffer: Buffer,
-    thumbnailBuffer: Buffer,
-    filename: string,
-    folder: string = 'posts/images'
-  ): Promise<{ original: UploadResult; thumbnail: UploadResult }> {
-    try {
-      const uniqueFilename = this.generateUniqueFilename(filename);
-      const [original, thumbnail] = await Promise.all([
-        this.uploadFile(originalBuffer, uniqueFilename, {
-          folder: `${folder}/original`,
-          contentType: 'image/jpeg',
-        }),
-        this.uploadFile(thumbnailBuffer, `thumb-${uniqueFilename}`, {
-          folder: `${folder}/thumbnails`,
-          contentType: 'image/jpeg',
-        }),
-      ]);
-
-      return { original, thumbnail };
-    } catch (error) {
-      this.logger.error('Failed to upload image and thumbnail:', error);
-      throw new Error('Failed to upload images');
-    }
-  }
-
-  /**
    * Generate unique filename with timestamp and random string
    */
   generateUniqueFilename(originalFilename: string): string {

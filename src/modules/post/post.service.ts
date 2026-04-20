@@ -11,6 +11,7 @@ import {
   ResourceNotFoundException,
 } from '@/common/exceptions';
 import { SuccessResponse } from '@/common/interfaces';
+import { CacheService } from '@/common/services';
 
 // Modules
 import { Category } from '@/modules/category/category.entity';
@@ -27,7 +28,7 @@ import { Post } from './post.entity';
 import { PostQueryDto, UpdatePostDto } from './post.dto';
 
 // Constants
-import { PostStatus } from '@/constants';
+import { JOB_NAMES, PostStatus, QUEUE_NAMES } from '@/constants';
 
 @Injectable()
 export class PostService {
@@ -41,10 +42,11 @@ export class PostService {
     private readonly em: EntityManager,
     @Inject(STORAGE_SERVICE)
     private readonly storageService: IStorageService,
-    @InjectQueue('post-publishing')
+    @InjectQueue(QUEUE_NAMES.POST_PUBLISHING)
     private readonly postPublishingQueue: Queue,
-    @InjectQueue('image-processing')
-    private readonly imageProcessingQueue: Queue
+    @InjectQueue(QUEUE_NAMES.IMAGE_PROCESSING)
+    private readonly imageProcessingQueue: Queue,
+    private readonly cacheService: CacheService
   ) {}
 
   /**
@@ -363,31 +365,6 @@ export class PostService {
   }
 
   /**
-   * Process and upload image (DEPRECATED - use queueImageProcessing instead)
-   * @deprecated Use async queue-based processing for better performance
-   * Kept for backward compatibility or emergency fallback
-   */
-  private async processAndUploadImage(
-    imageFile: Express.Multer.File
-  ): Promise<{ imageUrl: string; imageThumbnailUrl: string }> {
-    // Upload both original and thumbnail (thumbnail is generated automatically)
-    const uploadResult = await this.storageService.uploadImageWithThumbnail(
-      imageFile.buffer,
-      imageFile.originalname
-    );
-
-    logger.warn('Image uploaded to S3 (SYNC - DEPRECATED)', uploadResult, {
-      originalUrl: uploadResult.original.url,
-      thumbnailUrl: uploadResult.thumbnail.url,
-    });
-
-    return {
-      imageUrl: uploadResult.original.url,
-      imageThumbnailUrl: uploadResult.thumbnail.url,
-    };
-  }
-
-  /**
    * Queue image processing job (async alternative)
    * Creates post immediately and processes image in background
    * Uses temporary file storage to avoid Redis memory overhead
@@ -414,7 +391,7 @@ export class PostService {
     logger.log(`Saved temp image for post ${postId} at: ${tempFilePath}`);
 
     await this.imageProcessingQueue.add(
-      'process-post-image',
+      JOB_NAMES.PROCESS_POST_IMAGE,
       {
         postId,
         tempFilePath, // Only store file path (not image data)
@@ -459,6 +436,9 @@ export class PostService {
     post.imageThumbnailUrl = imageThumbnailUrl;
 
     await em.flush();
+
+    // Invalidate post cache so next GET returns updated image URLs
+    await this.cacheService.invalidatePostCaches();
 
     logger.log(`Updated images for post ${postId}`);
   }
@@ -610,7 +590,7 @@ export class PostService {
     // Queue the publishing job
     const delay = publishAt.getTime() - now.getTime();
     await this.postPublishingQueue.add(
-      'publish-post',
+      JOB_NAMES.PUBLISH_POST,
       { postId },
       {
         delay,
@@ -701,6 +681,7 @@ export class PostService {
     // Update post to PUBLISHED
     post.status = PostStatus.PUBLISHED;
     post.publishedAt = new Date();
+    post.publishAt = null;
 
     await em.flush();
 

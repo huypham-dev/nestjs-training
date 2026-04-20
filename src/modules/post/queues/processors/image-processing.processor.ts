@@ -6,7 +6,10 @@ import type { Job } from 'bull';
 // Services
 import type { IStorageService } from '@/shared/services';
 import { STORAGE_SERVICE } from '@/shared/services';
-import { PostService } from '@/modules/post/post.service';
+import { PostService } from '../../post.service';
+
+// Constants
+import { JOB_NAMES, QUEUE_NAMES } from '@/constants';
 
 interface ImageProcessingJobData {
   postId: string;
@@ -20,7 +23,7 @@ interface ProcessedImageResult {
   imageThumbnailUrl: string;
 }
 
-@Processor('image-processing')
+@Processor(QUEUE_NAMES.IMAGE_PROCESSING)
 export class ImageProcessingProcessor {
   private readonly logger = new Logger(ImageProcessingProcessor.name);
 
@@ -30,7 +33,7 @@ export class ImageProcessingProcessor {
     private readonly postService: PostService
   ) {}
 
-  @Process('process-post-image')
+  @Process(JOB_NAMES.PROCESS_POST_IMAGE)
   async handleImageProcessing(
     job: Job<ImageProcessingJobData>
   ): Promise<ProcessedImageResult> {

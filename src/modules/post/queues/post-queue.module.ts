@@ -4,14 +4,17 @@ import { BullModule } from '@nestjs/bull';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 
 // Modules
-import { PostModule } from '@/modules/post/post.module';
+import { PostModule } from '../post.module';
+
+// Constants
+import { QUEUE_NAMES } from '@/constants';
 
 // Processors
 import { PostPublishingProcessor } from './processors/post-publishing.processor';
 import { ImageProcessingProcessor } from './processors/image-processing.processor';
 
 // Services
-import { MissedScheduleService } from './services/missed-schedule.service';
+import { MissedScheduleService } from './missed-schedule.service';
 
 @Module({
   imports: [
@@ -26,10 +29,10 @@ import { MissedScheduleService } from './services/missed-schedule.service';
       inject: [ConfigService],
     }),
     BullModule.registerQueue({
-      name: 'post-publishing',
+      name: QUEUE_NAMES.POST_PUBLISHING,
     }),
     BullModule.registerQueue({
-      name: 'image-processing',
+      name: QUEUE_NAMES.IMAGE_PROCESSING,
     }),
     PostModule,
   ],
@@ -40,4 +43,4 @@ import { MissedScheduleService } from './services/missed-schedule.service';
   ],
   exports: [BullModule],
 })
-export class QueuesModule {}
+export class PostQueueModule {}

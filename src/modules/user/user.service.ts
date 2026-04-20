@@ -21,7 +21,7 @@ import type { CreateUserDto } from './user.dto';
 import { UserStatus } from '@/constants';
 
 // Gateway
-import { UserStatusGateway } from './user-status.gateway';
+import { UserGateway } from './user.socket';
 
 @Injectable()
 export class UserService {
@@ -33,7 +33,7 @@ export class UserService {
     private readonly em: EntityManager,
     @Inject(AUTH_SERVICE)
     private readonly authService: IAuthService,
-    private readonly userStatusGateway: UserStatusGateway
+    private readonly UserGateway: UserGateway
   ) {}
 
   async getAllUsers(
@@ -109,7 +109,7 @@ export class UserService {
       await this.em.flush();
 
       // Emit realtime event to connected WebSocket clients
-      this.userStatusGateway.emitUserStatusChanged(user);
+      this.UserGateway.emitUserStatusChanged(user);
     } catch (error) {
       // Rollback database change if auth provider operation fails
       user.status = previousStatus;

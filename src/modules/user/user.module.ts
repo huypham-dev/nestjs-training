@@ -15,7 +15,7 @@ import { UserService } from './user.service';
 import { PreventSameUserActionGuard } from './user.guards';
 
 // Gateway
-import { UserStatusGateway } from './user-status.gateway';
+import { UserGateway } from './user.socket';
 
 // Entities
 import { User } from './user.entity';
@@ -27,7 +27,7 @@ import { User } from './user.entity';
     UserService,
     PreventSameUserActionGuard,
     CacheService,
-    UserStatusGateway,
+    UserGateway,
   ],
   exports: [UserService],
 })

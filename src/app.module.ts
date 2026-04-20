@@ -24,7 +24,7 @@ import { PostModule } from '@/modules/post';
 import { UserModule } from '@/modules/user';
 import { WebhookModule } from '@/modules/webhook';
 import { SharedModule } from '@/shared/shared.module';
-import { QueuesModule } from '@/queues/queues.module';
+import { PostQueueModule } from '@/modules/post/queues/post-queue.module';
 
 // Guards
 import { ActiveUserGuard, RolesGuard } from './common/guards';
@@ -68,7 +68,7 @@ import { createDatabaseConfig } from '@/config';
       ttl: 30000, // 30 seconds default TTL
       max: 100, // Maximum number of items in cache
     }),
-    QueuesModule,
+    PostQueueModule,
     UserModule,
     CategoryModule,
     PostModule,
@@ -107,8 +107,8 @@ export class AppModule implements NestModule {
       .apply(AuthProviderMiddleware, AuthMiddleware)
       .exclude(
         { path: 'v1/webhooks/clerk', method: RequestMethod.POST },
-        { path: 'v1/webhooks/(.*)', method: RequestMethod.ALL }
+        { path: 'v1/webhooks/*path', method: RequestMethod.ALL }
       )
-      .forRoutes('*');
+      .forRoutes('*path');
   }
 }

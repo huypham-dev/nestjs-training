@@ -4,15 +4,18 @@ import { Logger } from '@nestjs/common';
 import type { Job } from 'bull';
 
 // Services
-import { PostService } from '@/modules/post/post.service';
+import { PostService } from '../../post.service';
 
-@Processor('post-publishing')
+// Constants
+import { JOB_NAMES, QUEUE_NAMES } from '@/constants';
+
+@Processor(QUEUE_NAMES.POST_PUBLISHING)
 export class PostPublishingProcessor {
   private readonly logger = new Logger(PostPublishingProcessor.name);
 
   constructor(private readonly postService: PostService) {}
 
-  @Process('publish-post')
+  @Process(JOB_NAMES.PUBLISH_POST)
   async handlePublishPost(job: Job<{ postId: string }>): Promise<void> {
     const { postId } = job.data;
     const attemptNumber = job.attemptsMade + 1;
@@ -57,12 +60,6 @@ export class PostPublishingProcessor {
       `Job permanently failed for post ${postId} after ${job.attemptsMade} attempts`
     );
     this.logger.error(`Error: ${error.message}`, error.stack);
-
-    // Here you could:
-    // 1. Send notification to admin
-    // 2. Store failed job info in database
-    // 3. Trigger alert/monitoring system
-    // 4. Update post with error status
 
     this.logger.warn(
       `Post ${postId} remains in SCHEDULED status. Manual review required.`

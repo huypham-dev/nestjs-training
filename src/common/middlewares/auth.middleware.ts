@@ -37,13 +37,15 @@ export class AuthMiddleware implements NestMiddleware {
     };
 
     try {
-      // Get user from database (must exist from webhook creation)
-      const user = await this.userService.getUserByAuthId(auth.userId);
+      // Get user from database, create if not exists
+      let user = await this.userService.getUserByAuthId(auth.userId);
 
       if (!user) {
-        throw new AuthenticationException(
-          'User not found. Please contact support.'
-        );
+        user = await this.userService.createUser({
+          authId: auth.userId,
+          email: req.auth.email ?? '',
+          fullName: req.auth.fullName ?? '',
+        });
       }
 
       req.user = user;
