@@ -27,6 +27,10 @@ import { Post } from './post.entity';
 // DTOs
 import { PostQueryDto, UpdatePostDto } from './post.dto';
 
+// Search
+import { PostSearchService } from './search';
+import type { PostSearchOptions } from './search';
+
 // Constants
 import { JOB_NAMES, PostStatus, QUEUE_NAMES } from '@/constants';
 
@@ -46,7 +50,8 @@ export class PostService {
     private readonly postPublishingQueue: Queue,
     @InjectQueue(QUEUE_NAMES.IMAGE_PROCESSING)
     private readonly imageProcessingQueue: Queue,
-    private readonly cacheService: CacheService
+    private readonly cacheService: CacheService,
+    private readonly postSearchService: PostSearchService
   ) {}
 
   /**
@@ -69,7 +74,7 @@ export class PostService {
       currentUserId,
       currentUserRole,
       undefined,
-      options.search
+      options.q
     );
 
     const [posts, total] = await this.postRepository.findAndCount(where, {
@@ -130,7 +135,7 @@ export class PostService {
       currentUserId,
       currentUserRole,
       targetUserId,
-      options.search
+      options.q
     );
 
     const [posts, total] = await this.postRepository.findAndCount(where, {
@@ -203,6 +208,13 @@ export class PostService {
 
     // Load relations for response
     await this.em.populate(post, ['user', 'categories']);
+
+    // Index in Elasticsearch (fire-and-forget - non-blocking)
+    this.postSearchService.indexPost(post).catch((error) => {
+      logger.error(
+        `Failed to index post ${post.id} in Elasticsearch: ${error.message}`
+      );
+    });
 
     return post;
   }
@@ -325,6 +337,13 @@ export class PostService {
     // Persist changes
     await this.em.flush();
 
+    // Update Elasticsearch index (fire-and-forget - non-blocking)
+    this.postSearchService.updatePost(post).catch((error) => {
+      logger.error(
+        `Failed to update post ${post.id} in Elasticsearch: ${error.message}`
+      );
+    });
+
     return post;
   }
 
@@ -362,6 +381,13 @@ export class PostService {
     // Delete the post
     this.em.remove(post);
     await this.em.flush();
+
+    // Remove from Elasticsearch (fire-and-forget - non-blocking)
+    this.postSearchService.removePost(postId).catch((error) => {
+      logger.error(
+        `Failed to remove post ${postId} from Elasticsearch: ${error.message}`
+      );
+    });
   }
 
   /**
@@ -702,5 +728,46 @@ export class PostService {
       await job.remove();
       logger.log(`Removed scheduled job ${jobId} from queue`);
     }
+  }
+
+  // ============================================================
+  // Search Methods
+  // ============================================================
+
+  /**
+   * Full-text search posts using Elasticsearch.
+   *
+   * - By default only returns PUBLISHED posts (visible to all)
+   * - Pass statuses override to include DRAFT posts for owner searches
+   * - Supports typo tolerance (fuzziness), relevance scoring, highlights
+   */
+  async searchPosts(
+    keyword: string,
+    options: {
+      offset?: number;
+      limit?: number;
+      /** Caller is responsible for ensuring permission when passing DRAFT */
+      status?: PostSearchOptions['status'];
+    } = {}
+  ): Promise<SuccessResponse<ReturnType<PostSearchService['toDocument']>[]>> {
+    const { offset = 0, limit = 10, ...rest } = options;
+
+    const result = await this.postSearchService.search({
+      keyword,
+      offset,
+      limit,
+      ...rest,
+    });
+
+    return {
+      data: result.hits.map((hit) => hit.source),
+      meta: {
+        pagination: {
+          offset,
+          limit,
+          total: result.total,
+        },
+      },
+    };
   }
 }

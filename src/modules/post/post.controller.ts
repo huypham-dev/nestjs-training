@@ -137,6 +137,89 @@ export class PostController {
   }
 
   /**
+   * Full-text search posts using Elasticsearch
+   *
+   * Searches across post title, content, author name, and category names.
+   * Uses relevance scoring and fuzzy matching (typo tolerance).
+   * Only returns PUBLISHED posts by default.
+   *
+   * @example
+   * GET /posts/search?q=nestjs&offset=0&limit=10
+   */
+  @Get('posts/search')
+  @Version('1')
+  @HttpCode(HttpStatus.OK)
+  @ApiDocumentation({
+    operation: {
+      summary: 'Full-text search posts',
+      description:
+        'Search posts using Elasticsearch full-text search. Supports relevance scoring, fuzzy matching, and highlights.',
+    },
+    response: {
+      status: 200,
+      description: 'Search results with pagination',
+      schema: {
+        type: 'object',
+        properties: {
+          data: { type: 'array' },
+          meta: {
+            type: 'object',
+            properties: {
+              pagination: {
+                type: 'object',
+                properties: {
+                  offset: { type: 'number' },
+                  limit: { type: 'number' },
+                  total: { type: 'number' },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  })
+  async searchPosts(
+    @Query(new ZodValidationPipe(postQuerySchema)) query: PostQueryDto
+  ) {
+    if (!query.q) {
+      return {
+        data: [],
+        meta: { pagination: { offset: 0, limit: 10, total: 0 } },
+      };
+    }
+
+    const result = await this.postService.searchPosts(query.q, {
+      offset: query.offset,
+      limit: query.limit,
+    });
+
+    return {
+      ...result,
+      data: result.data.map((doc) => ({
+        id: doc.id,
+        title: doc.title,
+        content: doc.content,
+        status: doc.status,
+        publishedAt: doc.publishedAt ?? null,
+        imageUrl: doc.imageUrl ?? null,
+        imageThumbnailUrl: doc.imageThumbnailUrl ?? null,
+        createdAt: doc.createdAt,
+        updatedAt: doc.updatedAt,
+        author: {
+          id: doc.authorId,
+          fullName: doc.authorName,
+          email: doc.authorEmail,
+        },
+        categories: doc.categoryIds.map((id, idx) => ({
+          id,
+          name: doc.categoryNames[idx] ?? '',
+        })),
+      })),
+    };
+  }
+
+  /**
    * Create a new post
    *
    * Creates a new blog post with DRAFT status by default.
@@ -464,7 +547,7 @@ export class PostController {
         offset: query.offset ?? 0,
         limit: query.limit ?? 10,
         status: query.status,
-        search: query.search,
+        q: query.q,
       }
     );
 

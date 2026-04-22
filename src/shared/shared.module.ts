@@ -1,11 +1,17 @@
 // Dependencies
 import { Global, Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ElasticsearchModule } from '@nestjs/elasticsearch';
 
 // Services
 import { ClerkAuthService } from './services/auth/clerk-auth.service';
 import { AUTH_SERVICE } from './services/auth/auth-service.interface';
 import { S3StorageService } from './services/storage/s3.service';
 import { STORAGE_SERVICE } from './services/storage/storage.interface';
+import {
+  ElasticsearchService,
+  ELASTICSEARCH_SERVICE,
+} from './services/elasticsearch';
 
 /**
  * Shared Module
@@ -16,7 +22,8 @@ import { STORAGE_SERVICE } from './services/storage/storage.interface';
  * To switch providers:
  * 1. Storage: Change S3StorageService to CloudinaryService, LocalStorageService, etc.
  * 2. Auth: Change ClerkAuthService to Auth0Service, FirebaseAuthService, etc.
- * 3. No other changes needed in the app
+ * 3. Search: Change ElasticsearchService to OpenSearchService, AlgoliaService, etc.
+ * 4. No other changes needed in the app
  */
 
 const providers = [
@@ -30,10 +37,27 @@ const providers = [
     provide: AUTH_SERVICE,
     useClass: ClerkAuthService, // Swap: Auth0Service, FirebaseAuthService, SupabaseAuthService
   },
+  // Search provider - use ELASTICSEARCH_SERVICE token for injection
+  {
+    provide: ELASTICSEARCH_SERVICE,
+    useClass: ElasticsearchService,
+  },
 ];
 
 @Global()
 @Module({
+  imports: [
+    ElasticsearchModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (configService: ConfigService) => ({
+        node: configService.get<string>(
+          'ELASTICSEARCH_NODE',
+          'http://localhost:9200'
+        ),
+      }),
+    }),
+  ],
   providers: [...providers],
   exports: [...providers],
 })

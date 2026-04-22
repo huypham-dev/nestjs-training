@@ -32,7 +32,7 @@ export const postQuerySchema = z
       description: 'Filter posts by status',
       example: PostStatus.PUBLISHED,
     }),
-    search: z
+    q: z
       .string()
       .trim()
       .min(1, 'Search query must not be empty')

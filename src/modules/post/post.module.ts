@@ -19,6 +19,9 @@ import { PostController } from './post.controller';
 // Services
 import { PostService } from './post.service';
 
+// Search
+import { PostSearchService } from './search';
+
 // Guards
 import { PostOwnerGuard, PostOwnerOrAdminGuard } from './post.guards';
 
@@ -36,7 +39,13 @@ import { Post } from './post.entity';
     }),
   ],
   controllers: [PostController],
-  providers: [PostService, PostOwnerGuard, PostOwnerOrAdminGuard, CacheService],
+  providers: [
+    PostService,
+    PostSearchService,
+    PostOwnerGuard,
+    PostOwnerOrAdminGuard,
+    CacheService,
+  ],
   exports: [PostService],
 })
 export class PostModule {}
