@@ -23,6 +23,7 @@ import { CategoryModule } from '@/modules/category';
 import { PostModule } from '@/modules/post';
 import { UserModule } from '@/modules/user';
 import { WebhookModule } from '@/modules/webhook';
+import { NotificationModule } from '@/modules/notification';
 import { SharedModule } from '@/shared/shared.module';
 import { PostQueueModule } from '@/modules/post/queues/post-queue.module';
 
@@ -73,6 +74,7 @@ import { createDatabaseConfig } from '@/config';
     CategoryModule,
     PostModule,
     WebhookModule,
+    NotificationModule,
     SharedModule,
   ],
   providers: [

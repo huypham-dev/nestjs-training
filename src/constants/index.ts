@@ -6,3 +6,4 @@ export * from './cache-keys';
 export * from './webhooks';
 export * from './socket-events';
 export * from './queues';
+export * from './platforms';

@@ -12,6 +12,8 @@ import {
   ElasticsearchService,
   ELASTICSEARCH_SERVICE,
 } from './services/elasticsearch';
+import { PushNotificationService } from './services/push-notification/push-notification.service';
+import { PUSH_NOTIFICATION_SERVICE } from './services/push-notification/push-notification.interface';
 
 /**
  * Shared Module
@@ -41,6 +43,11 @@ const providers = [
   {
     provide: ELASTICSEARCH_SERVICE,
     useClass: ElasticsearchService,
+  },
+  // Push notification provider – use PUSH_NOTIFICATION_SERVICE token for injection
+  {
+    provide: PUSH_NOTIFICATION_SERVICE,
+    useClass: PushNotificationService, // Swap: OneSignalService, ExpoService, etc.
   },
 ];
 

@@ -9,5 +9,8 @@ export { ClerkAuthService } from './auth/clerk-auth.service';
 // Elasticsearch
 export * from './elasticsearch';
 
+// Push Notifications
+export * from './push-notification';
+
 // Legacy exports (deprecated - use tokens instead)
 export { ClerkAuthService as ClerkService } from './auth/clerk-auth.service';
