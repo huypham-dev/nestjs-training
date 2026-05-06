@@ -1,6 +1,5 @@
 // Dependencies
 import { Opt, PrimaryKey, Property } from '@mikro-orm/core';
-import { v4 } from 'uuid';
 
 /**
  * Base Entity class with common fields for all entities
@@ -10,7 +9,7 @@ import { v4 } from 'uuid';
  */
 export abstract class BaseEntity {
   @PrimaryKey({ type: 'uuid', fieldName: 'id' })
-  id: string = v4();
+  id: string = crypto.randomUUID();
 
   @Property({
     type: 'timestamp',

@@ -5,8 +5,10 @@ import {
 } from '@asteasolutions/zod-to-openapi';
 import { VersioningType } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { json, urlencoded } from 'express';
+import type { Request, Response } from 'express';
 import helmet from 'helmet';
 
 // Modules
@@ -26,8 +28,11 @@ import {
 // Interceptors
 import { ResponseTransformInterceptor } from './common/interceptors/response-transform.interceptor';
 
-async function bootstrap() {
-  const app = await NestFactory.create(AppModule, {
+// Cached NestJS app instance (for Vercel serverless reuse)
+let cachedApp: NestExpressApplication | null = null;
+
+async function createApp(): Promise<NestExpressApplication> {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bodyParser: true,
     rawBody: true,
   });
@@ -114,6 +119,26 @@ async function bootstrap() {
     },
   });
 
+  await app.init();
+
+  return app;
+}
+
+// Vercel serverless handler
+export default async function handler(req: Request, res: Response) {
+  if (!cachedApp) {
+    cachedApp = await createApp();
+  }
+
+  const expressApp = cachedApp.getHttpAdapter().getInstance();
+  return expressApp(req, res);
+}
+
+// Local development bootstrap
+async function bootstrap() {
+  const app = await createApp();
+
+  const apiBasePath = process.env.API_BASE_PATH || 'api';
   const port = process.env.PORT ?? 8000;
   await app.listen(port);
 
@@ -126,4 +151,7 @@ async function bootstrap() {
   console.log(`📌 API Versioning: URI-based (e.g., /${apiBasePath}/v1/users)`);
 }
 
-void bootstrap();
+// Only run bootstrap when not in Vercel serverless environment
+if (process.env.VERCEL !== '1') {
+  void bootstrap();
+}
