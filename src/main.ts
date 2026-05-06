@@ -45,7 +45,20 @@ async function createApp(): Promise<NestExpressApplication> {
   app.enableCors();
 
   // Use Helmet to enhance API security
-  app.use(helmet());
+  // Allow Swagger UI inline scripts and styles from CDN
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: [`'self'`],
+          styleSrc: [`'self'`, `'unsafe-inline'`, 'https://unpkg.com'],
+          scriptSrc: [`'self'`, `'unsafe-inline'`, 'https://unpkg.com'],
+          imgSrc: [`'self'`, 'data:', 'https:'],
+          connectSrc: [`'self'`],
+        },
+      },
+    })
+  );
 
   // Set global prefix (e.g., /api)
   const apiBasePath = process.env.API_BASE_PATH || 'api';
@@ -111,6 +124,11 @@ async function createApp(): Promise<NestExpressApplication> {
 
   SwaggerModule.setup(`${apiBasePath}/docs`, app, document, {
     customSiteTitle: 'Blog API Documentation',
+    customCssUrl: 'https://unpkg.com/swagger-ui-dist@5/swagger-ui.css',
+    customJs: [
+      'https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js',
+      'https://unpkg.com/swagger-ui-dist@5/swagger-ui-standalone-preset.js',
+    ],
     swaggerOptions: {
       persistAuthorization: true,
       docExpansion: 'none',
