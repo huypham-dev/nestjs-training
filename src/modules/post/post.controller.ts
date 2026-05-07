@@ -57,7 +57,9 @@ import type { PostResponse } from './post.dto';
 const IMAGE_FILE_PIPE = new ParseFilePipe({
   validators: [
     new MaxFileSizeValidator({ maxSize: 5 * 1024 * 1024 }), // 5MB
-    new FileTypeValidator({ fileType: '.(jpg|jpeg|png|webp)$' }),
+    new FileTypeValidator({
+      fileType: /(image\/jpeg|image\/jpg|image\/png|image\/webp)$/,
+    }),
   ],
   fileIsRequired: false,
 });
