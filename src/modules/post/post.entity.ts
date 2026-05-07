@@ -62,6 +62,7 @@ export class Post extends BaseEntity {
     entity: () => Category,
     inversedBy: 'posts',
     pivotEntity: 'PostCategory',
+    pivotTable: 'post_categories',
   })
   categories = new Collection<Category>(this);
 }

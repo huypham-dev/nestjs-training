@@ -8,10 +8,6 @@ import { DevicePlatform } from '@/constants';
 // Extend Zod with OpenAPI
 extendZodWithOpenApi(z);
 
-// ────────────────────────────────────────────────────────────────────────────
-// Device token management
-// ────────────────────────────────────────────────────────────────────────────
-
 export const registerDeviceSchema = z
   .object({
     token: z.string().min(1, 'FCM token is required').openapi({
@@ -37,10 +33,6 @@ export const unregisterDeviceSchema = z
     }),
   })
   .openapi({ description: 'Unregister a device FCM token' });
-
-// ────────────────────────────────────────────────────────────────────────────
-// Sending notifications (internal / admin use)
-// ────────────────────────────────────────────────────────────────────────────
 
 export const sendNotificationToUserSchema = z
   .object({
@@ -70,10 +62,6 @@ export const sendNotificationToUserSchema = z
     }),
   })
   .openapi({ description: 'Send a push notification to a user' });
-
-// ────────────────────────────────────────────────────────────────────────────
-// Inferred types
-// ────────────────────────────────────────────────────────────────────────────
 
 export type RegisterDeviceDto = z.infer<typeof registerDeviceSchema>;
 export type UnregisterDeviceDto = z.infer<typeof unregisterDeviceSchema>;

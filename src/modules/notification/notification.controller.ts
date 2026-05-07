@@ -43,10 +43,6 @@ import {
 export class NotificationController {
   constructor(private readonly notificationService: NotificationService) {}
 
-  // ──────────────────────────────────────────────────────────────────────────
-  // Device token endpoints (called by mobile / web clients)
-  // ──────────────────────────────────────────────────────────────────────────
-
   @Version('1')
   @Post('devices/register')
   @HttpCode(HttpStatus.OK)
@@ -85,10 +81,6 @@ export class NotificationController {
   getMyDevices(@CurrentUser() currentUser: User) {
     return this.notificationService.getDeviceTokensByUser(currentUser.id);
   }
-
-  // ──────────────────────────────────────────────────────────────────────────
-  // Internal / admin send endpoint
-  // ──────────────────────────────────────────────────────────────────────────
 
   @Version('1')
   @Post('notifications/send')

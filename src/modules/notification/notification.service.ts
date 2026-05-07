@@ -35,10 +35,6 @@ export class NotificationService {
     private readonly notificationProducer: NotificationProducer
   ) {}
 
-  // ──────────────────────────────────────────────────────────────────────────
-  // Device token management
-  // ──────────────────────────────────────────────────────────────────────────
-
   /**
    * Register (or refresh) an FCM device token for the current user.
    * Upserts by token value so duplicate registrations are idempotent.
@@ -100,10 +96,6 @@ export class NotificationService {
   async getDeviceTokensByUser(userId: string): Promise<DeviceToken[]> {
     return this.deviceTokenRepo.find({ user: userId, isActive: true });
   }
-
-  // ──────────────────────────────────────────────────────────────────────────
-  // Sending notifications
-  // ──────────────────────────────────────────────────────────────────────────
 
   /**
    * Dispatch a push notification to all active devices of a user.
